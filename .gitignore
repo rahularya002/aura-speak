@@ -36,6 +36,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# local AI assistant data (vectors, uploads)
+/.data/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

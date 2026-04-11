@@ -1,0 +1,22 @@
+"use client";
+
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import AppSidebar from "@/components/AppSidebar";
+
+interface DashboardLayoutProps {
+  children: React.ReactNode;
+}
+
+const DashboardLayout = ({ children }: DashboardLayoutProps) => (
+  <SidebarProvider>
+    <AppSidebar />
+    <SidebarInset className="overflow-hidden">
+      <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border bg-background px-4">
+        <SidebarTrigger className="-ml-1" />
+      </header>
+      <div className="min-h-0 flex-1 overflow-auto">{children}</div>
+    </SidebarInset>
+  </SidebarProvider>
+);
+
+export default DashboardLayout;
