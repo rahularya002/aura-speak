@@ -1,15 +1,42 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import ChatPanel, { type Message } from "@/components/ChatPanel";
 import AvatarPanel, { type AvatarStatus } from "@/components/AvatarPanel";
 import { askQuestionStream, triggerAvatar } from "@/services/api";
+import { toast } from "sonner";
+
+/** Avoid duplicate preload when React Strict Mode remounts (dev). */
+let avatarPreloadStarted = false;
 
 const ChatPage = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [avatarStatus, setAvatarStatus] = useState<AvatarStatus>("idle");
   const [streamUrl, setStreamUrl] = useState<string>();
+  /** Bumps when we need a fresh iframe even if the URL string repeats. */
+  const [embedFrameKey, setEmbedFrameKey] = useState(0);
+
+  const loadEmbed = useCallback(async (text = "") => {
+    setAvatarStatus("connecting");
+    try {
+      const res = await triggerAvatar(text);
+      if (res.streamUrl) {
+        setStreamUrl(res.streamUrl);
+        setEmbedFrameKey((k) => k + 1);
+      }
+      setAvatarStatus("idle");
+    } catch (e) {
+      setAvatarStatus("error");
+      toast.error(e instanceof Error ? e.message : "Could not start avatar session");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (avatarPreloadStarted) return;
+    avatarPreloadStarted = true;
+    void loadEmbed("");
+  }, [loadEmbed]);
 
   const handleSend = useCallback(async (query: string) => {
     const userMsg: Message = { id: crypto.randomUUID(), role: "user", content: query };
@@ -37,7 +64,10 @@ const ChatPage = () => {
       setAvatarStatus("connecting");
       triggerAvatar(fullAnswer)
         .then((res) => {
-          if (res.streamUrl) setStreamUrl(res.streamUrl);
+          if (res.streamUrl) {
+            setStreamUrl(res.streamUrl);
+            setEmbedFrameKey((k) => k + 1);
+          }
           setAvatarStatus("speaking");
           setTimeout(() => setAvatarStatus("idle"), 15000);
         })
@@ -58,12 +88,18 @@ const ChatPage = () => {
   }, []);
 
   return (
-    <div className="flex flex-1 h-full flex-col md:flex-row">
-      <div className="flex-[3] border-r border-border min-h-0">
-        <ChatPanel messages={messages} isLoading={isLoading} onSend={handleSend} />
+    <div className="flex h-full min-h-0 w-full flex-1 flex-col lg:flex-row">
+      {/* flex column so AvatarPanel can grow to full row height */}
+      <div className="flex max-lg:min-h-[min(50vh,20rem)] min-h-0 flex-1 flex-col border-y border-border min-w-0 lg:flex-[1.25] lg:border-x lg:border-y-0">
+        <AvatarPanel
+          status={avatarStatus}
+          streamUrl={streamUrl}
+          embedFrameKey={embedFrameKey}
+          onReloadEmbed={() => void loadEmbed("")}
+        />
       </div>
-      <div className="flex-[2] min-h-0">
-        <AvatarPanel status={avatarStatus} streamUrl={streamUrl} />
+      <div className="flex min-h-0 flex-1 flex-col border-t border-border lg:max-w-xl lg:w-[min(100%,28rem)] lg:border-l lg:border-t-0">
+        <ChatPanel messages={messages} isLoading={isLoading} onSend={handleSend} />
       </div>
     </div>
   );

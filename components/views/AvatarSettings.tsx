@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { Play, Save, Video, Volume2, Loader2, UserCircle, ExternalLink, RefreshCw } from "lucide-react";
 import { fetchLiveAvatarContexts, triggerAvatar, updateConfig } from "@/services/api";
+import { LIVEAVATAR_SANDBOX_WAYNE_AVATAR_ID } from "@/lib/constants/liveavatar";
 import { toast } from "sonner";
 
 const AvatarSettings = () => {
@@ -140,6 +141,47 @@ const AvatarSettings = () => {
           (<code className="text-xs bg-muted px-1 rounded">GET /v1/contexts</code>) and pick one below.
           Legacy HeyGen Streaming is available server-side with <code className="text-xs bg-muted px-1 rounded">AVATAR_BACKEND=heygen</code>.
         </p>
+        <div className="mt-4 rounded-lg border border-border bg-muted/30 p-4 space-y-2 text-sm text-muted-foreground leading-relaxed">
+          <p className="font-medium text-foreground">LiveAvatar has two session types: FULL and LITE</p>
+          <p>
+            <a
+              href="https://docs.liveavatar.com/docs/full-mode/overview.md"
+              className="text-primary font-medium hover:underline"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              FULL
+            </a>
+            : LiveAvatar runs STT → LLM → TTS → avatar (all-in-one).{" "}
+            <a
+              href="https://docs.liveavatar.com/docs/lite-mode/overview.md"
+              className="text-primary font-medium hover:underline"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              LITE
+            </a>
+            : you run STT/LLM/TTS; LiveAvatar only renders video from the audio you send (usually fewer credits per minute).
+          </p>
+          <p>
+            <strong className="text-foreground">This app</strong> uses the{" "}
+            <strong className="text-foreground">Embed API</strong> (
+            <code className="text-xs bg-background px-1 rounded border border-border">POST /v2/embeddings</code>) and loads LiveAvatar&apos;s{" "}
+            <strong className="text-foreground">hosted iframe</strong>. That experience is the managed, full pipeline — effectively{" "}
+            <strong className="text-foreground">FULL-style</strong> usage and billing. There is no LITE switch on the embed endpoint.
+          </p>
+          <p>
+            A true <strong className="text-foreground">LITE</strong> integration would use{" "}
+            <code className="text-xs bg-background px-1 rounded border border-border">POST /v1/sessions/token</code> with{" "}
+            <code className="text-xs bg-background px-1 rounded border border-border">&quot;mode&quot;: &quot;LITE&quot;</code> and the Web SDK to pipe
+            audio — not implemented here yet.
+          </p>
+          <p className="text-xs border-t border-border pt-2 mt-2">
+            To spend less today: use <strong className="text-foreground">sandbox</strong> (Wayne avatar only, no credits), or set server env{" "}
+            <code className="text-xs bg-background px-1 rounded border border-border">LIVEAVATAR_MAX_SESSION_DURATION_SECONDS</code> to cap
+            each embed session length.
+          </p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
@@ -234,7 +276,7 @@ const AvatarSettings = () => {
               ) : (
                 <>
                   <Select
-                    value={contextId || undefined}
+                    value={contextId}
                     onValueChange={setContextId}
                     disabled={contextSelectItems.length === 0}
                   >
@@ -277,24 +319,35 @@ const AvatarSettings = () => {
                 </>
               )}
             </div>
-            <div className="flex items-center gap-2 pt-1">
-              <Checkbox
-                id="sandbox"
-                checked={isSandbox}
-                onCheckedChange={(v) => setIsSandbox(v === true)}
-              />
-              <label htmlFor="sandbox" className="text-sm text-muted-foreground cursor-pointer leading-none">
-                Sandbox embed (no credits; see{" "}
-                <a
-                  href="https://docs.liveavatar.com/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary hover:underline"
-                >
-                  docs
-                </a>
-                )
-              </label>
+            <div className="space-y-2 pt-1">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="sandbox"
+                  checked={isSandbox}
+                  onCheckedChange={(v) => setIsSandbox(v === true)}
+                />
+                <label htmlFor="sandbox" className="text-sm text-muted-foreground cursor-pointer leading-none">
+                  Sandbox embed (no credits; see{" "}
+                  <a
+                    href="https://docs.liveavatar.com/docs/sandbox-mode.md"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline"
+                  >
+                    sandbox rules
+                  </a>
+                  )
+                </label>
+              </div>
+              {isSandbox && (
+                <p className="text-xs text-muted-foreground pl-7 max-w-lg leading-relaxed">
+                  Sandbox only allows the <span className="font-mono text-[11px]">Wayne</span> avatar (
+                  <span className="font-mono text-[11px] break-all">{LIVEAVATAR_SANDBOX_WAYNE_AVATAR_ID}</span>
+                  ). Using any other Avatar ID causes the embed to load but{" "}
+                  <code className="rounded bg-muted px-1">/v1/sessions/start</code> to return 400. Turn off sandbox
+                  to use your own avatar (uses credits).
+                </p>
+              )}
             </div>
           </div>
 

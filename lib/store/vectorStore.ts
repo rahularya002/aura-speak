@@ -1,102 +1,203 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { getDb, uploadDirForAssistant } from "@/lib/db/client";
 import type { ChunkRecord, DocumentRecord } from "@/lib/types/ai";
-import { DATA_DIR, UPLOADS_DIR, VECTOR_STORE_PATH } from "@/lib/store/paths";
+import { UPLOADS_DIR } from "@/lib/store/paths";
 
-interface VectorStoreFile {
-  documents: DocumentRecord[];
-  chunks: ChunkRecord[];
+type DocumentRow = {
+  id: string;
+  assistant_id: string;
+  name: string;
+  status: "indexed" | "processing" | "error";
+  created_at: string;
+  error: string | null;
+};
+
+type ChunkRow = {
+  id: string;
+  assistant_id: string;
+  doc_id: string;
+  name: string;
+  text: string;
+  embedding_json: string;
+};
+
+const DEFAULT_ASSISTANT_ID = "default";
+
+function rowToDocument(row: DocumentRow): DocumentRecord {
+  return {
+    id: row.id,
+    assistantId: row.assistant_id,
+    name: row.name,
+    status: row.status,
+    createdAt: row.created_at,
+    error: row.error ?? undefined,
+  };
 }
 
-let ioQueue: Promise<void> = Promise.resolve();
-
-function queue<T>(fn: () => Promise<T>): Promise<T> {
-  const run = ioQueue.then(fn, fn);
-  ioQueue = run.then(
-    () => {},
-    () => {}
-  );
-  return run;
-}
-
-async function readStore(): Promise<VectorStoreFile> {
+function rowToChunk(row: ChunkRow): ChunkRecord {
+  let embedding: number[] = [];
   try {
-    const raw = await fs.readFile(VECTOR_STORE_PATH, "utf-8");
-    const parsed = JSON.parse(raw) as VectorStoreFile;
-    return {
-      documents: parsed.documents ?? [],
-      chunks: parsed.chunks ?? [],
-    };
+    const parsed = JSON.parse(row.embedding_json) as unknown;
+    if (Array.isArray(parsed)) embedding = parsed as number[];
   } catch {
-    return { documents: [], chunks: [] };
+    embedding = [];
   }
+  return {
+    id: row.id,
+    assistantId: row.assistant_id,
+    docId: row.doc_id,
+    name: row.name,
+    text: row.text,
+    embedding,
+  };
 }
 
-async function writeStore(store: VectorStoreFile): Promise<void> {
-  await fs.mkdir(DATA_DIR, { recursive: true });
-  await fs.writeFile(VECTOR_STORE_PATH, JSON.stringify(store, null, 2), "utf-8");
+export async function listDocuments(
+  assistantId = DEFAULT_ASSISTANT_ID
+): Promise<DocumentRecord[]> {
+  const db = getDb();
+  const rows = db
+    .prepare(
+      `
+        SELECT id, assistant_id, name, status, created_at, error
+          FROM documents
+         WHERE assistant_id = ?
+         ORDER BY created_at DESC
+      `
+    )
+    .all(assistantId) as DocumentRow[];
+  return rows.map(rowToDocument);
 }
 
-export async function listDocuments(): Promise<DocumentRecord[]> {
-  const s = await readStore();
-  return s.documents;
-}
-
-export async function getDocument(id: string): Promise<DocumentRecord | undefined> {
-  const s = await readStore();
-  return s.documents.find((d) => d.id === id);
+export async function getDocument(
+  id: string,
+  assistantId = DEFAULT_ASSISTANT_ID
+): Promise<DocumentRecord | undefined> {
+  const db = getDb();
+  const row = db
+    .prepare(
+      `
+        SELECT id, assistant_id, name, status, created_at, error
+          FROM documents
+         WHERE id = ? AND assistant_id = ?
+      `
+    )
+    .get(id, assistantId) as DocumentRow | undefined;
+  return row ? rowToDocument(row) : undefined;
 }
 
 export async function upsertDocument(doc: DocumentRecord): Promise<void> {
-  await queue(async () => {
-    const s = await readStore();
-    const i = s.documents.findIndex((d) => d.id === doc.id);
-    if (i >= 0) s.documents[i] = doc;
-    else s.documents.push(doc);
-    await writeStore(s);
-  });
+  const db = getDb();
+  db.prepare(
+    `
+      INSERT INTO documents (id, assistant_id, name, status, created_at, error)
+      VALUES (?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        assistant_id = excluded.assistant_id,
+        name = excluded.name,
+        status = excluded.status,
+        created_at = excluded.created_at,
+        error = excluded.error
+    `
+  ).run(
+    doc.id,
+    doc.assistantId,
+    doc.name,
+    doc.status,
+    doc.createdAt,
+    doc.error ?? null
+  );
 }
 
-export async function removeDocument(id: string): Promise<void> {
-  await queue(async () => {
-    const s = await readStore();
-    s.documents = s.documents.filter((d) => d.id !== id);
-    s.chunks = s.chunks.filter((c) => c.docId !== id);
-    await writeStore(s);
-    try {
-      await fs.rm(path.join(UPLOADS_DIR, id), { recursive: true, force: true });
-    } catch {
-      /* ignore */
+export async function removeDocument(
+  id: string,
+  assistantId = DEFAULT_ASSISTANT_ID
+): Promise<void> {
+  const db = getDb();
+  db.prepare("DELETE FROM documents WHERE id = ? AND assistant_id = ?").run(
+    id,
+    assistantId
+  );
+  try {
+    await fs.rm(path.join(uploadDirForAssistant(assistantId), id), {
+      recursive: true,
+      force: true,
+    });
+  } catch {
+    /* ignore */
+  }
+}
+
+export async function replaceChunksForDoc(
+  assistantId: string,
+  docId: string,
+  chunks: ChunkRecord[]
+): Promise<void> {
+  const db = getDb();
+  const tx = db.transaction(() => {
+    db.prepare(
+      "DELETE FROM embedding_chunks WHERE assistant_id = ? AND doc_id = ?"
+    ).run(assistantId, docId);
+    const insert = db.prepare(
+      `
+        INSERT INTO embedding_chunks
+        (id, assistant_id, doc_id, name, text, embedding_json)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `
+    );
+    for (const c of chunks) {
+      insert.run(
+        c.id,
+        assistantId,
+        docId,
+        c.name,
+        c.text,
+        JSON.stringify(c.embedding ?? [])
+      );
     }
   });
+  tx();
 }
 
-export async function replaceChunksForDoc(docId: string, chunks: ChunkRecord[]): Promise<void> {
-  await queue(async () => {
-    const s = await readStore();
-    s.chunks = s.chunks.filter((c) => c.docId !== docId);
-    s.chunks.push(...chunks);
-    await writeStore(s);
-  });
+export async function getChunksForAssistant(
+  assistantId = DEFAULT_ASSISTANT_ID
+): Promise<ChunkRecord[]> {
+  const db = getDb();
+  const rows = db
+    .prepare(
+      `
+        SELECT id, assistant_id, doc_id, name, text, embedding_json
+          FROM embedding_chunks
+         WHERE assistant_id = ?
+      `
+    )
+    .all(assistantId) as ChunkRow[];
+  return rows.map(rowToChunk);
 }
 
-export async function getAllChunks(): Promise<ChunkRecord[]> {
-  const s = await readStore();
-  return s.chunks;
+export async function clearAllChunks(
+  assistantId = DEFAULT_ASSISTANT_ID
+): Promise<void> {
+  const db = getDb();
+  db.prepare("DELETE FROM embedding_chunks WHERE assistant_id = ?").run(
+    assistantId
+  );
 }
 
-export async function clearAllChunks(): Promise<void> {
-  await queue(async () => {
-    const s = await readStore();
-    s.chunks = [];
-    await writeStore(s);
-  });
+export async function ensureUploadsDir(assistantId: string): Promise<void> {
+  await fs.mkdir(uploadDirForAssistant(assistantId), { recursive: true });
 }
 
-export async function ensureUploadsDir(): Promise<void> {
+export function uploadPathForDoc(
+  assistantId: string,
+  docId: string,
+  safeName: string
+): string {
+  return path.join(uploadDirForAssistant(assistantId), docId, safeName);
+}
+
+export async function removeAllAssistantUploads(assistantId: string): Promise<void> {
   await fs.mkdir(UPLOADS_DIR, { recursive: true });
-}
-
-export function uploadPathForDoc(docId: string, safeName: string): string {
-  return path.join(UPLOADS_DIR, docId, safeName);
+  await fs.rm(uploadDirForAssistant(assistantId), { recursive: true, force: true });
 }

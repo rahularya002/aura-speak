@@ -1,13 +1,13 @@
 'use client'
 import { useState, useCallback, useRef, useEffect } from "react";
-import { Database, Cpu, Sparkles, Send, Bot, User, Video, Wifi, WifiOff, VideoOff, Play, Copy, Check, ChevronDown, FileText } from "lucide-react";
+import { Database, Cpu, Sparkles, Send, Bot, User, Copy, Check, ChevronDown, FileText } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import ReactMarkdown from "react-markdown";
-import { askQuestionStream, triggerAvatar } from "@/services/api";
+import { askQuestionStream } from "@/services/api";
 import { useAssistant } from "@/contexts/AssistantContext";
 import { toast } from "sonner";
 
@@ -17,15 +17,6 @@ interface Message {
   content: string;
   sources?: string[];
 }
-
-type AvatarStatus = "idle" | "connecting" | "speaking" | "disconnected";
-
-const statusConfig: Record<AvatarStatus, { label: string; dotClass: string }> = {
-  idle: { label: "Idle", dotClass: "bg-muted-foreground" },
-  connecting: { label: "Connecting…", dotClass: "bg-amber-500 animate-pulse" },
-  speaking: { label: "Speaking", dotClass: "bg-emerald-500" },
-  disconnected: { label: "Disconnected", dotClass: "bg-destructive" },
-};
 
 const suggestedPrompts = [
   "Summarize my documents",
@@ -86,7 +77,6 @@ const MessageBubble = ({ msg }: { msg: Message }) => {
           )}
         </div>
 
-        {/* Actions for assistant messages */}
         {msg.role === "assistant" && (
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity pl-1">
             <button
@@ -99,7 +89,6 @@ const MessageBubble = ({ msg }: { msg: Message }) => {
           </div>
         )}
 
-        {/* Source References */}
         {msg.role === "assistant" && msg.sources && msg.sources.length > 0 && (
           <Collapsible open={sourcesOpen} onOpenChange={setSourcesOpen}>
             <CollapsibleTrigger className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors pl-1">
@@ -128,8 +117,6 @@ const Overview = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [avatarStatus, setAvatarStatus] = useState<AvatarStatus>("idle");
-  const [streamUrl, setStreamUrl] = useState<string>();
   const bottomRef = useRef<HTMLDivElement>(null);
   const { current } = useAssistant();
 
@@ -143,12 +130,10 @@ const Overview = () => {
     setMessages((prev) => [...prev, userMsg]);
     setIsLoading(true);
 
-    let fullAnswer = "";
     let started = false;
     try {
       await askQuestionStream(query, {
         onToken: (t) => {
-          fullAnswer += t;
           if (!started) {
             started = true;
             setMessages((prev) => [
@@ -170,21 +155,11 @@ const Overview = () => {
           );
         },
       });
-
-      setAvatarStatus("connecting");
-      triggerAvatar(fullAnswer)
-        .then((res) => {
-          if (res.streamUrl) setStreamUrl(res.streamUrl);
-          setAvatarStatus("speaking");
-          setTimeout(() => setAvatarStatus("idle"), 15000);
-        })
-        .catch(() => setAvatarStatus("disconnected"));
     } catch {
       setMessages((prev) => [
         ...prev,
         { id: crypto.randomUUID(), role: "assistant", content: "Sorry, I couldn't reach the backend." },
       ]);
-      setAvatarStatus("disconnected");
     } finally {
       setIsLoading(false);
     }
@@ -198,14 +173,11 @@ const Overview = () => {
   };
 
   const hasMessages = messages.length > 0;
-  const { label: statusLabel, dotClass } = statusConfig[avatarStatus];
 
   return (
-    <div className="flex flex-1 h-full">
-      {/* Chat Panel */}
-      <div className="flex-[3] flex flex-col border-r border-border min-h-0">
+    <div className="flex flex-1 h-full min-h-0 flex-col">
+      <div className="flex-1 flex flex-col min-h-0">
         {!hasMessages ? (
-          /* Empty State */
           <div className="flex-1 flex items-center justify-center p-8">
             <div className="max-w-md text-center space-y-6 animate-fade-in">
               <div className="mx-auto h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center">
@@ -216,7 +188,6 @@ const Overview = () => {
                 <p className="text-sm text-muted-foreground mt-2">Set up your assistant to get started</p>
               </div>
 
-              {/* Action Cards */}
               <div className="grid gap-3 text-left">
                 <Link
                   href="/knowledge"
@@ -244,13 +215,13 @@ const Overview = () => {
                 </Link>
               </div>
 
-              {/* Suggested Prompts */}
               <div className="space-y-2">
                 <p className="text-xs text-muted-foreground">Or try a prompt</p>
                 <div className="flex flex-wrap gap-2 justify-center">
                   {suggestedPrompts.map((prompt) => (
                     <button
                       key={prompt}
+                      type="button"
                       onClick={() => handleSend(prompt)}
                       className="flex items-center gap-1.5 rounded-full border border-border bg-card px-3.5 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:border-primary/30 hover:bg-accent transition-all duration-150 shadow-xs"
                     >
@@ -263,7 +234,6 @@ const Overview = () => {
             </div>
           </div>
         ) : (
-          /* Chat Messages */
           <ScrollArea className="flex-1 p-4">
             <div className="flex flex-col gap-4 max-w-3xl mx-auto">
               {messages.map((msg) => (
@@ -275,7 +245,6 @@ const Overview = () => {
           </ScrollArea>
         )}
 
-        {/* Input */}
         <form onSubmit={handleSubmit} className="p-4 border-t border-border bg-card">
           <div className="flex gap-2 max-w-3xl mx-auto">
             <Input
@@ -295,57 +264,6 @@ const Overview = () => {
             </Button>
           </div>
         </form>
-      </div>
-
-      {/* Avatar Panel */}
-      <div className="hidden lg:flex flex-[2] flex-col min-h-0 bg-card">
-        <div className="flex items-center justify-between px-5 py-3 border-b border-border">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            {avatarStatus === "disconnected" ? <WifiOff className="h-3.5 w-3.5" /> : <Wifi className="h-3.5 w-3.5" />}
-            <span>{statusLabel}</span>
-          </div>
-          <span className={`h-2 w-2 rounded-full transition-colors ${dotClass}`} />
-        </div>
-
-        <div className="flex-1 flex items-center justify-center p-6">
-          <div className="w-full aspect-video rounded-xl bg-background border border-border flex items-center justify-center overflow-hidden transition-shadow hover:shadow-card">
-            {streamUrl ? (
-              <iframe
-                src={streamUrl}
-                className="w-full h-full"
-                allow="camera; microphone; autoplay"
-                title="Avatar Stream"
-              />
-            ) : (
-              <div className="flex flex-col items-center gap-3 text-muted-foreground">
-                {avatarStatus === "disconnected" ? (
-                  <>
-                    <VideoOff className="h-12 w-12 opacity-20" />
-                    <p className="text-xs">Avatar unavailable</p>
-                  </>
-                ) : (
-                  <>
-                    <div className="h-16 w-16 rounded-full bg-secondary flex items-center justify-center">
-                      <Video className="h-8 w-8 opacity-30" />
-                    </div>
-                    <p className="text-xs">Avatar will appear here</p>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="p-4 border-t border-border">
-          <Button
-            variant="outline"
-            className="w-full transition-all duration-150 active:scale-[0.98]"
-            size="sm"
-          >
-            <Play className="h-3.5 w-3.5 mr-2" />
-            Start Session
-          </Button>
-        </div>
       </div>
     </div>
   );

@@ -55,6 +55,8 @@ const ModelSettings = () => {
   const [maxTokens, setMaxTokens] = useState(2048);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  /** Avoid Radix Select disabled mismatch (server null vs client true) on first paint. */
+  const [hasMounted, setHasMounted] = useState(false);
 
   const values = useMemo(() => ({ llmModel, embeddingModel }), [llmModel, embeddingModel]);
   const storageKeys = useMemo(() => ({
@@ -64,6 +66,7 @@ const ModelSettings = () => {
   const autoSaveStatus = useAutoSave(values, storageKeys);
 
   useEffect(() => {
+    setHasMounted(true);
     let cancelled = false;
     async function hydrate() {
       let url = localStorage.getItem("ai-assistant-ollama-url") || "http://localhost:11434";
@@ -74,7 +77,8 @@ const ModelSettings = () => {
       let mt = 2048;
 
       try {
-        const r = await fetch(apiPath("/config"));
+        const assistantId = localStorage.getItem("ai-assistant-current-id") || "default";
+        const r = await fetch(apiPath(`/config?assistant_id=${encodeURIComponent(assistantId)}`));
         if (r.ok) {
           const c = (await r.json()) as Record<string, unknown>;
           const serverUrl = (typeof c.ollamaUrl === "string" && c.ollamaUrl.trim()
@@ -176,6 +180,11 @@ const ModelSettings = () => {
       ),
     [embeddingModels, availableModels, embeddingModel]
   );
+
+  const llmSelectDisabled =
+    hasMounted && llmSelectOptions.length === 0 && !llmModel.trim();
+  const embeddingSelectDisabled =
+    hasMounted && embeddingSelectOptions.length === 0 && !embeddingModel.trim();
 
   return (
     <div className="p-6 md:p-8 space-y-6">
@@ -341,7 +350,7 @@ const ModelSettings = () => {
                 <Select
                   value={llmModel}
                   onValueChange={setLlmModel}
-                  disabled={llmSelectOptions.length === 0 && !llmModel.trim()}
+                  disabled={llmSelectDisabled}
                 >
                   <SelectTrigger className="bg-background border-border">
                     <SelectValue
@@ -367,7 +376,7 @@ const ModelSettings = () => {
                 <Select
                   value={embeddingModel}
                   onValueChange={setEmbeddingModel}
-                  disabled={embeddingSelectOptions.length === 0 && !embeddingModel.trim()}
+                  disabled={embeddingSelectDisabled}
                 >
                   <SelectTrigger className="bg-background border-border">
                     <SelectValue

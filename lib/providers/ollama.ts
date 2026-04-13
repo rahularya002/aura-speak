@@ -100,7 +100,24 @@ export async function* streamChat(
   const reader = res.body.getReader();
   const dec = new TextDecoder();
   let buf = "";
-  let prevContent = "";
+  /** Full assistant text assembled so far (Ollama may send cumulative *or* delta chunks). */
+  let acc = "";
+
+  const emitChunk = (c: string) => {
+    if (!c) return;
+    if (acc.length === 0) {
+      acc = c;
+      return c;
+    }
+    if (c.startsWith(acc)) {
+      const piece = c.slice(acc.length);
+      acc = c;
+      return piece;
+    }
+    acc += c;
+    return c;
+  };
+
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
@@ -113,10 +130,8 @@ export async function* streamChat(
       try {
         const j = JSON.parse(trimmed) as { message?: { content?: string }; done?: boolean };
         const c = j.message?.content ?? "";
-        if (c.length > prevContent.length) {
-          yield c.slice(prevContent.length);
-          prevContent = c;
-        }
+        const out = emitChunk(c);
+        if (out) yield out;
       } catch {
         /* skip bad line */
       }
@@ -127,9 +142,8 @@ export async function* streamChat(
     try {
       const j = JSON.parse(tail) as { message?: { content?: string } };
       const c = j.message?.content ?? "";
-      if (c.length > prevContent.length) {
-        yield c.slice(prevContent.length);
-      }
+      const out = emitChunk(c);
+      if (out) yield out;
     } catch {
       /* ignore */
     }

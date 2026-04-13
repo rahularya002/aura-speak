@@ -93,7 +93,9 @@ export function AppSidebar() {
                     <>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-foreground truncate">{current.name}</p>
-                        <p className="text-[11px] text-muted-foreground truncate">{current.description || "AI Assistant"}</p>
+                        <p className="text-[11px] text-muted-foreground truncate">
+                          {current.description?.trim() || "Default assistant"}
+                        </p>
                       </div>
                       <ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                     </>

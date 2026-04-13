@@ -5,16 +5,18 @@ import { chunkText, extractTextFromFile } from "@/lib/text/extract";
 import { cosineSimilarity } from "@/lib/math/vector";
 import {
   ensureUploadsDir,
-  getAllChunks,
+  getChunksForAssistant,
   replaceChunksForDoc,
   uploadPathForDoc,
   upsertDocument,
+  listDocuments,
 } from "@/lib/store/vectorStore";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { uploadDirForAssistant } from "@/lib/db/client";
 
-const CHUNK_SIZE = 512;
-const CHUNK_OVERLAP = 64;
+const CHUNK_SIZE = 500;
+const CHUNK_OVERLAP = 50;
 const TOP_K = 5;
 
 export interface RetrievedSource {
@@ -25,10 +27,11 @@ export interface RetrievedSource {
 
 export async function retrieveContext(
   query: string,
-  config: AssistantConfig
+  config: AssistantConfig,
+  assistantId: string
 ): Promise<{ context: string; sources: RetrievedSource[] }> {
   const baseUrl = config.baseUrl || config.ollamaUrl || "http://localhost:11434";
-  const chunks = await getAllChunks();
+  const chunks = await getChunksForAssistant(assistantId);
   if (!chunks.length || !config.embeddingModel) {
     return { context: "", sources: [] };
   }
@@ -61,6 +64,7 @@ export async function retrieveContext(
 
 export async function ingestDocumentBuffer(
   config: AssistantConfig,
+  assistantId: string,
   buffer: Buffer,
   originalName: string,
   mimeType: string,
@@ -69,14 +73,15 @@ export async function ingestDocumentBuffer(
   const id = options?.existingId ?? randomUUID();
   const doc: DocumentRecord = {
     id,
+    assistantId,
     name: originalName,
     status: "processing",
     createdAt: options?.createdAt ?? new Date().toISOString(),
   };
   await upsertDocument(doc);
-  await ensureUploadsDir();
+  await ensureUploadsDir(assistantId);
   const safe = path.basename(originalName).replace(/[^\w.\-]+/g, "_");
-  const dest = uploadPathForDoc(id, safe);
+  const dest = uploadPathForDoc(assistantId, id, safe);
   await fs.mkdir(path.dirname(dest), { recursive: true });
   await fs.writeFile(dest, buffer);
 
@@ -93,12 +98,13 @@ export async function ingestDocumentBuffer(
     );
     const chunks: ChunkRecord[] = parts.map((t, i) => ({
       id: randomUUID(),
+      assistantId,
       docId: id,
       name: originalName,
       text: t,
       embedding: embeddings[i] ?? [],
     }));
-    await replaceChunksForDoc(id, chunks);
+    await replaceChunksForDoc(assistantId, id, chunks);
     doc.status = "indexed";
     await upsertDocument(doc);
     return doc;
@@ -110,12 +116,14 @@ export async function ingestDocumentBuffer(
   }
 }
 
-export async function reindexAll(config: AssistantConfig): Promise<void> {
-  const { listDocuments } = await import("@/lib/store/vectorStore");
-  const docs = await listDocuments();
-  await ensureUploadsDir();
+export async function reindexAll(
+  config: AssistantConfig,
+  assistantId: string
+): Promise<void> {
+  const docs = await listDocuments(assistantId);
+  await ensureUploadsDir(assistantId);
   for (const d of docs) {
-    const dir = path.join(process.cwd(), ".data", "uploads", d.id);
+    const dir = path.join(uploadDirForAssistant(assistantId), d.id);
     let files: string[] = [];
     try {
       files = await fs.readdir(dir);
@@ -126,7 +134,7 @@ export async function reindexAll(config: AssistantConfig): Promise<void> {
     if (!file) continue;
     const buf = await fs.readFile(path.join(dir, file));
     const mime = file.endsWith(".pdf") ? "application/pdf" : "text/plain";
-    await ingestDocumentBuffer(config, buf, d.name, mime, {
+    await ingestDocumentBuffer(config, assistantId, buf, d.name, mime, {
       existingId: d.id,
       createdAt: d.createdAt,
     });

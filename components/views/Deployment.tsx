@@ -18,7 +18,9 @@ const Deployment = () => {
     setBaseUrl(window.location.origin);
     const name = localStorage.getItem("ai-assistant-name") || "My Assistant";
     setDisplayName(name);
-    setAssistantId(name.toLowerCase().replace(/\s+/g, "-") || "my-assistant");
+    /** Must match real `assistant_id` (UUID or `default`), not a display slug — otherwise APIs/RAG target the wrong row. */
+    const id = localStorage.getItem("ai-assistant-current-id")?.trim() || "default";
+    setAssistantId(id);
   }, []);
 
   const embedIframe = useMemo(
@@ -112,6 +114,9 @@ const Deployment = () => {
               value={embedScript}
               className="font-mono text-xs h-14 resize-none bg-background border-border"
             />
+            <p className="text-xs text-muted-foreground">
+              Script widget URL is not implemented yet — use the iframe embed above.
+            </p>
           </div>
         </div>
 

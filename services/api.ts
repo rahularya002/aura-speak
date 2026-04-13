@@ -1,37 +1,8 @@
-const getConfig = () => {
-  if (typeof window === "undefined") {
-    return {
-      backendUrl: "",
-      liveAvatarApiKey: "",
-      heygenApiKey: "",
-      avatarId: "default",
-      contextId: "",
-      isSandbox: true,
-    };
-  }
-  const liveKey =
-    localStorage.getItem("ai-assistant-liveavatar-api-key")?.trim() ||
-    localStorage.getItem("ai-assistant-heygen-key")?.trim() ||
-    "";
-  const sandboxRaw = localStorage.getItem("ai-assistant-liveavatar-sandbox");
-  const isSandbox = sandboxRaw === null ? true : sandboxRaw === "true";
-  return {
-    backendUrl: localStorage.getItem("ai-assistant-backend-url") ?? "",
-    liveAvatarApiKey: liveKey,
-    heygenApiKey: localStorage.getItem("ai-assistant-heygen-key") ?? "",
-    avatarId: localStorage.getItem("ai-assistant-avatar-id") ?? "default",
-    contextId: localStorage.getItem("ai-assistant-liveavatar-context-id") ?? "",
-    isSandbox,
-  };
-};
-
-/** Same-origin `/api/...` when backend URL is empty; otherwise `{backend}/api/...`. */
-export function apiPath(path: string): string {
-  const base = getConfig().backendUrl.trim().replace(/\/$/, "");
-  const p = path.startsWith("/") ? path : `/${path}`;
-  const normalized = p.startsWith("/api") ? p : `/api${p}`;
-  if (!base) return normalized;
-  return `${base}${normalized}`;
+export interface AssistantItem {
+  id: string;
+  name: string;
+  description: string;
+  createdAt: string;
 }
 
 export interface AskResponse {
@@ -41,8 +12,11 @@ export interface AskResponse {
 
 export interface DocumentItem {
   id: string;
+  assistantId?: string;
   name: string;
   status: "indexed" | "processing" | "error";
+  createdAt?: string;
+  error?: string;
 }
 
 export interface StreamSource {
@@ -57,28 +31,150 @@ export interface StreamChatHandlers {
   onError?: (err: Error) => void;
 }
 
+const getConfig = () => {
+  if (typeof window === "undefined") {
+    return {
+      backendUrl: "",
+      assistantId: "default",
+      liveAvatarApiKey: "",
+      heygenApiKey: "",
+      avatarId: "default",
+      contextId: "",
+      isSandbox: true,
+      avatarProvider: "liveavatar" as "liveavatar" | "heygen",
+    };
+  }
+  const liveKey =
+    localStorage.getItem("ai-assistant-liveavatar-api-key")?.trim() ||
+    localStorage.getItem("ai-assistant-heygen-key")?.trim() ||
+    "";
+  const sandboxRaw = localStorage.getItem("ai-assistant-liveavatar-sandbox");
+  const isSandbox = sandboxRaw === null ? true : sandboxRaw === "true";
+  const avatarProvider =
+    (localStorage.getItem("ai-assistant-avatar-provider") as
+      | "liveavatar"
+      | "heygen"
+      | null) ?? "liveavatar";
+  return {
+    backendUrl: localStorage.getItem("ai-assistant-backend-url") ?? "",
+    /** `??` alone keeps `""`, which breaks `/api/config` (Zod min(1) on assistant_id). */
+    assistantId:
+      (localStorage.getItem("ai-assistant-current-id") ?? "").trim() || "default",
+    liveAvatarApiKey: liveKey,
+    heygenApiKey: localStorage.getItem("ai-assistant-heygen-key") ?? "",
+    avatarId: localStorage.getItem("ai-assistant-avatar-id") ?? "default",
+    contextId: localStorage.getItem("ai-assistant-liveavatar-context-id") ?? "",
+    isSandbox,
+    avatarProvider,
+  };
+};
+
+function withQuery(path: string, params: Record<string, string | undefined>) {
+  const p = path.startsWith("/api") ? path : `/api${path}`;
+  const query = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) {
+    if (v !== undefined && v !== "") query.set(k, v);
+  }
+  const qs = query.toString();
+  return qs ? `${p}?${qs}` : p;
+}
+
+/** Same-origin `/api/...` when backend URL is empty; otherwise `{backend}/api/...`. */
+export function apiPath(path: string): string {
+  const base = getConfig().backendUrl.trim().replace(/\/$/, "");
+  const p = path.startsWith("/") ? path : `/${path}`;
+  const normalized = p.startsWith("/api") ? p : `/api${p}`;
+  if (!base) return normalized;
+  return `${base}${normalized}`;
+}
+
+async function parseOrThrow(res: Response): Promise<unknown> {
+  const json = (await res.json().catch(() => ({}))) as {
+    error?: unknown;
+    message?: string;
+  };
+  if (!res.ok) {
+    const e = json.error;
+    if (typeof e === "string") throw new Error(e);
+    if (e && typeof e === "object" && "message" in e) {
+      const m = (e as { message?: unknown }).message;
+      if (typeof m === "string") throw new Error(m);
+    }
+    if (json.message) throw new Error(json.message);
+    throw new Error(`Request failed: ${res.status}`);
+  }
+  return json;
+}
+
+export async function listAssistants(): Promise<AssistantItem[]> {
+  const res = await fetch(apiPath("/assistants"));
+  const data = (await parseOrThrow(res)) as { assistants?: AssistantItem[] };
+  return data.assistants ?? [];
+}
+
+export async function createAssistant(
+  name: string,
+  description = ""
+): Promise<AssistantItem> {
+  const res = await fetch(apiPath("/assistants"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, description }),
+  });
+  const data = (await parseOrThrow(res)) as { assistant: AssistantItem };
+  return data.assistant;
+}
+
+export async function deleteAssistant(id: string): Promise<void> {
+  const res = await fetch(apiPath(`/assistants/${id}`), { method: "DELETE" });
+  await parseOrThrow(res);
+}
+
 /** Non-streaming chat (JSON `{ answer, sources }`). */
 export async function askQuestion(query: string): Promise<AskResponse> {
+  const { assistantId } = getConfig();
   const res = await fetch(apiPath("/chat"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ query, stream: false }),
+    body: JSON.stringify({
+      assistant_id: assistantId,
+      message: query,
+      stream: false,
+    }),
   });
-  if (!res.ok) throw new Error(`Backend error: ${res.status}`);
-  const data = (await res.json()) as { answer: string; sources?: string[] };
+  const data = (await parseOrThrow(res)) as { answer: string; sources?: string[] };
   return { answer: data.answer, sources: data.sources };
 }
 
 /** SSE streaming from `POST /api/chat` with `{ stream: true }`. */
-export async function askQuestionStream(query: string, handlers: StreamChatHandlers): Promise<void> {
+export async function askQuestionStream(
+  query: string,
+  handlers: StreamChatHandlers
+): Promise<void> {
+  const { assistantId } = getConfig();
   const res = await fetch(apiPath("/chat"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ query, stream: true }),
+    body: JSON.stringify({
+      assistant_id: assistantId,
+      message: query,
+      stream: true,
+    }),
   });
   if (!res.ok) {
-    handlers.onError?.(new Error(`Chat error: ${res.status}`));
-    throw new Error(`Chat error: ${res.status}`);
+    let msg = `Chat error: ${res.status}`;
+    try {
+      const data = (await res.json()) as { error?: { message?: string } | string };
+      if (typeof data.error === "string") msg = data.error;
+      else if (data.error && typeof data.error === "object" && data.error.message) {
+        msg = data.error.message;
+      }
+    } catch {
+      /* no-op */
+    }
+    const err = new Error(msg);
+    handlers.onError?.(err);
+    throw err;
   }
   const reader = res.body?.getReader();
   if (!reader) {
@@ -124,6 +220,20 @@ export async function askQuestionStream(query: string, handlers: StreamChatHandl
   }
 }
 
+export async function getChatHistory(limit = 100, offset = 0) {
+  const { assistantId } = getConfig();
+  const res = await fetch(
+    apiPath(
+      withQuery("/chat/history", {
+        assistant_id: assistantId,
+        limit: String(limit),
+        offset: String(offset),
+      })
+    )
+  );
+  return parseOrThrow(res);
+}
+
 /** Lists contexts for the authenticated LiveAvatar account (GET /v1/contexts). */
 export async function fetchLiveAvatarContexts(
   apiKey: string
@@ -133,23 +243,29 @@ export async function fetchLiveAvatarContexts(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ apiKey }),
   });
-  const data = (await res.json().catch(() => ({}))) as {
-    error?: string;
+  const data = (await parseOrThrow(res)) as {
     contexts?: { id: string; name: string }[];
   };
-  if (!res.ok) {
-    throw new Error(data.error || `Contexts error: ${res.status}`);
-  }
   return data.contexts ?? [];
 }
 
-export async function triggerAvatar(text: string): Promise<{ sessionId?: string; streamUrl?: string }> {
-  const { liveAvatarApiKey, heygenApiKey, avatarId, contextId, isSandbox } = getConfig();
+export async function triggerAvatar(
+  text = ""
+): Promise<{ sessionId?: string; streamUrl?: string }> {
+  const {
+    liveAvatarApiKey,
+    heygenApiKey,
+    avatarId,
+    contextId,
+    isSandbox,
+    avatarProvider,
+  } = getConfig();
   const res = await fetch(apiPath("/avatar"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       text,
+      provider: avatarProvider,
       liveAvatarApiKey,
       heygenApiKey,
       avatarId,
@@ -157,69 +273,76 @@ export async function triggerAvatar(text: string): Promise<{ sessionId?: string;
       isSandbox,
     }),
   });
-  const data = (await res.json().catch(() => ({}))) as {
-    error?: string;
+  const data = (await parseOrThrow(res)) as {
     sessionId?: string;
     streamUrl?: string;
   };
-  if (!res.ok) {
-    throw new Error(data.error || `Avatar error: ${res.status}`);
-  }
   return data;
 }
 
 export async function getDocuments(): Promise<DocumentItem[]> {
-  const res = await fetch(apiPath("/knowledge"));
-  if (!res.ok) throw new Error(`Documents error: ${res.status}`);
-  return res.json();
+  const { assistantId } = getConfig();
+  const res = await fetch(apiPath(withQuery("/knowledge", { assistant_id: assistantId })));
+  return (await parseOrThrow(res)) as DocumentItem[];
 }
 
 export async function uploadDocument(file: File): Promise<DocumentItem> {
+  const { assistantId } = getConfig();
   const formData = new FormData();
   formData.append("file", file);
+  formData.append("assistant_id", assistantId);
   const res = await fetch(apiPath("/knowledge"), {
     method: "POST",
     body: formData,
   });
-  if (!res.ok) throw new Error(`Upload error: ${res.status}`);
-  return res.json();
+  return (await parseOrThrow(res)) as DocumentItem;
 }
 
 export async function deleteDocument(id: string): Promise<void> {
-  const res = await fetch(apiPath(`/knowledge/${id}`), { method: "DELETE" });
-  if (!res.ok) throw new Error(`Delete error: ${res.status}`);
+  const { assistantId } = getConfig();
+  const res = await fetch(
+    apiPath(withQuery(`/knowledge/${id}`, { assistant_id: assistantId })),
+    { method: "DELETE" }
+  );
+  await parseOrThrow(res);
 }
 
 export async function reindexDocuments(): Promise<void> {
-  const res = await fetch(apiPath("/reindex"), { method: "POST" });
-  if (!res.ok) throw new Error(`Reindex error: ${res.status}`);
+  const { assistantId } = getConfig();
+  const res = await fetch(apiPath(withQuery("/reindex", { assistant_id: assistantId })), {
+    method: "POST",
+  });
+  await parseOrThrow(res);
 }
 
 export async function getModels(): Promise<{ llm: string[]; embedding: string[] }> {
-  const res = await fetch(apiPath("/models"));
-  if (!res.ok) throw new Error(`Models error: ${res.status}`);
-  return res.json();
+  const { assistantId } = getConfig();
+  const res = await fetch(apiPath(withQuery("/models", { assistant_id: assistantId })));
+  return (await parseOrThrow(res)) as { llm: string[]; embedding: string[] };
 }
 
 /** Dynamic model list for a provider + base URL (proxied through Next.js). */
-export async function fetchModelsViaApi(provider: "ollama" | "lmstudio" | "localai", baseUrl: string): Promise<string[]> {
-  const res = await fetch(apiPath("/models"), {
+export async function fetchModelsViaApi(
+  provider: "ollama" | "lmstudio" | "localai",
+  baseUrl: string
+): Promise<string[]> {
+  const res = await fetch(apiPath("/models/connect"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ provider, base_url: baseUrl }),
   });
-  if (!res.ok) throw new Error(`Models error: ${res.status}`);
-  const data = (await res.json()) as { models: string[] };
+  const data = (await parseOrThrow(res)) as { models: string[] };
   return data.models ?? [];
 }
 
 export async function updateConfig(config: object): Promise<void> {
+  const { assistantId } = getConfig();
   const res = await fetch(apiPath("/config"), {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(config),
+    body: JSON.stringify({ assistant_id: assistantId, ...config }),
   });
-  if (!res.ok) throw new Error(`Config error: ${res.status}`);
+  await parseOrThrow(res);
 }
 
 export async function fetchOllamaModels(ollamaUrl: string): Promise<string[]> {

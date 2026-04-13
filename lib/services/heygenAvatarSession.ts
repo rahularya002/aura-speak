@@ -99,7 +99,7 @@ export async function createHeyGenAvatarSession(params: {
   let streamUrl = findStreamUrl(data) ?? findStreamUrl(json);
   const sessionId = findSessionId(data) ?? findSessionId(json);
 
-  if (sessionId && params.text) {
+  if (sessionId && params.text?.trim()) {
     const taskRes = await fetch(`${HEYGEN_BASE}/v1/streaming.task`, {
       method: "POST",
       headers: {

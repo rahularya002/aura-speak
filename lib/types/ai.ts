@@ -26,8 +26,16 @@ export const defaultAssistantConfig = (): AssistantConfig => ({
   maxTokens: 2048,
 });
 
+export interface AssistantRecord {
+  id: string;
+  name: string;
+  description: string;
+  createdAt: string;
+}
+
 export interface DocumentRecord {
   id: string;
+  assistantId: string;
   name: string;
   status: "indexed" | "processing" | "error";
   createdAt: string;
@@ -36,8 +44,17 @@ export interface DocumentRecord {
 
 export interface ChunkRecord {
   id: string;
+  assistantId: string;
   docId: string;
   name: string;
   text: string;
   embedding: number[];
+}
+
+export interface ChatMessageRecord {
+  id: string;
+  assistantId: string;
+  role: "user" | "assistant" | "system";
+  content: string;
+  createdAt: string;
 }
