@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import ChatPanel, { type Message } from "@/components/ChatPanel";
 import AvatarPanel, { type AvatarStatus } from "@/components/AvatarPanel";
 import { askQuestionStream, generateSpeech, getConfig, triggerAvatar } from "@/services/api";
@@ -17,6 +17,12 @@ const ChatPage = () => {
   const [streamUrl, setStreamUrl] = useState<string>();
   /** Bumps when we need a fresh iframe even if the URL string repeats. */
   const [embedFrameKey, setEmbedFrameKey] = useState(0);
+  const streamUrlRef = useRef<string>();
+  const liveAvatarStartRef = useRef<Promise<boolean> | null>(null);
+
+  useEffect(() => {
+    streamUrlRef.current = streamUrl;
+  }, [streamUrl]);
 
   const maybePlayVoice = useCallback(async (text: string) => {
     const config = getConfig();
@@ -53,6 +59,38 @@ const ChatPage = () => {
     }
   }, []);
 
+  const ensureLiveAvatarEmbed = useCallback(async (): Promise<boolean> => {
+    if (streamUrlRef.current) return true;
+    if (liveAvatarStartRef.current) return liveAvatarStartRef.current;
+
+    const pending = (async () => {
+      setAvatarStatus("connecting");
+      try {
+        const res = await triggerAvatar("");
+        if (res.fallback === "text-only") {
+          setAvatarStatus("idle");
+          toast.warning("Avatar unavailable. Continuing in text-only mode.");
+          return false;
+        }
+        if (res.streamUrl) {
+          setStreamUrl(res.streamUrl);
+          setEmbedFrameKey((k) => k + 1);
+          streamUrlRef.current = res.streamUrl;
+        }
+        setAvatarStatus("idle");
+        return Boolean(streamUrlRef.current);
+      } catch {
+        setAvatarStatus("error");
+        return false;
+      } finally {
+        liveAvatarStartRef.current = null;
+      }
+    })();
+
+    liveAvatarStartRef.current = pending;
+    return pending;
+  }, []);
+
   const markAvatarSpeaking = useCallback(() => {
     setAvatarStatus("speaking");
     setTimeout(() => setAvatarStatus("idle"), 15000);
@@ -61,8 +99,8 @@ const ChatPage = () => {
   useEffect(() => {
     if (avatarPreloadStarted) return;
     avatarPreloadStarted = true;
-    void loadEmbed("");
-  }, [loadEmbed]);
+    void ensureLiveAvatarEmbed();
+  }, [ensureLiveAvatarEmbed]);
 
   const handleSend = useCallback(async (query: string) => {
     const userMsg: Message = { id: crypto.randomUUID(), role: "user", content: query };
@@ -100,23 +138,8 @@ const ChatPage = () => {
       // LiveAvatar embed should be long-lived. Recreating it for every reply can
       // cause LiveKit reconnection churn and unstable playback in production.
       if (avatarProvider === "liveavatar") {
-        if (!streamUrl) {
-          setAvatarStatus("connecting");
-          triggerAvatar("")
-            .then((res) => {
-              if (res.fallback === "text-only") {
-                setAvatarStatus("idle");
-                toast.warning("Avatar unavailable. Continuing in text-only mode.");
-                return;
-              }
-              if (res.streamUrl) {
-                setStreamUrl(res.streamUrl);
-                setEmbedFrameKey((k) => k + 1);
-              }
-              markAvatarSpeaking();
-            })
-            .catch(() => setAvatarStatus("error"));
-        } else {
+        const ok = await ensureLiveAvatarEmbed();
+        if (ok) {
           markAvatarSpeaking();
         }
       } else {
@@ -150,7 +173,7 @@ const ChatPage = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [markAvatarSpeaking, maybePlayVoice, streamUrl]);
+  }, [ensureLiveAvatarEmbed, markAvatarSpeaking, maybePlayVoice]);
 
   return (
     <div className="flex h-full min-h-0 w-full flex-1 flex-col lg:flex-row">
