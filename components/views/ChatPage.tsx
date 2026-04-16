@@ -9,6 +9,8 @@ import { formatForSpeech, trimResponse } from "@/lib/utils/speechFormatter";
 
 /** Avoid duplicate preload when React Strict Mode remounts (dev). */
 let avatarPreloadStarted = false;
+const AVATAR_INIT_DELAY_MS = 1000;
+const AVATAR_RELOAD_COOLDOWN_MS = 1200;
 
 const ChatPage = () => {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -19,6 +21,7 @@ const ChatPage = () => {
   const [embedFrameKey, setEmbedFrameKey] = useState(0);
   const streamUrlRef = useRef<string>();
   const liveAvatarStartRef = useRef<Promise<boolean> | null>(null);
+  const lastReloadAtRef = useRef(0);
 
   useEffect(() => {
     streamUrlRef.current = streamUrl;
@@ -39,34 +42,18 @@ const ChatPage = () => {
     }
   }, []);
 
-  const loadEmbed = useCallback(async (text = "") => {
-    setAvatarStatus("connecting");
-    try {
-      const res = await triggerAvatar(text);
-      if (res.fallback === "text-only") {
-        setAvatarStatus("idle");
-        toast.warning("Avatar unavailable. Continuing in text-only mode.");
-        return;
-      }
-      if (res.streamUrl) {
-        setStreamUrl(res.streamUrl);
-        setEmbedFrameKey((k) => k + 1);
-      }
-      setAvatarStatus("idle");
-    } catch (e) {
-      setAvatarStatus("error");
-      toast.error(e instanceof Error ? e.message : "Could not start avatar session");
-    }
-  }, []);
-
-  const ensureLiveAvatarEmbed = useCallback(async (): Promise<boolean> => {
-    if (streamUrlRef.current) return true;
+  const loadEmbed = useCallback(async (text = ""): Promise<boolean> => {
+    const now = Date.now();
     if (liveAvatarStartRef.current) return liveAvatarStartRef.current;
+    if (now - lastReloadAtRef.current < AVATAR_RELOAD_COOLDOWN_MS) {
+      return Boolean(streamUrlRef.current);
+    }
+    lastReloadAtRef.current = now;
 
     const pending = (async () => {
       setAvatarStatus("connecting");
       try {
-        const res = await triggerAvatar("");
+        const res = await triggerAvatar(text);
         if (res.fallback === "text-only") {
           setAvatarStatus("idle");
           toast.warning("Avatar unavailable. Continuing in text-only mode.");
@@ -79,8 +66,9 @@ const ChatPage = () => {
         }
         setAvatarStatus("idle");
         return Boolean(streamUrlRef.current);
-      } catch {
+      } catch (e) {
         setAvatarStatus("error");
+        toast.error(e instanceof Error ? e.message : "Could not start avatar session");
         return false;
       } finally {
         liveAvatarStartRef.current = null;
@@ -91,6 +79,11 @@ const ChatPage = () => {
     return pending;
   }, []);
 
+  const ensureLiveAvatarEmbed = useCallback(async (): Promise<boolean> => {
+    if (streamUrlRef.current) return true;
+    return loadEmbed("");
+  }, [loadEmbed]);
+
   const markAvatarSpeaking = useCallback(() => {
     setAvatarStatus("speaking");
     setTimeout(() => setAvatarStatus("idle"), 15000);
@@ -99,7 +92,10 @@ const ChatPage = () => {
   useEffect(() => {
     if (avatarPreloadStarted) return;
     avatarPreloadStarted = true;
-    void ensureLiveAvatarEmbed();
+    const timer = setTimeout(() => {
+      void ensureLiveAvatarEmbed();
+    }, AVATAR_INIT_DELAY_MS);
+    return () => clearTimeout(timer);
   }, [ensureLiveAvatarEmbed]);
 
   const handleSend = useCallback(async (query: string) => {

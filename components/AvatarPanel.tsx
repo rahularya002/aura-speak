@@ -110,7 +110,7 @@ const AvatarPanel = ({ status, streamUrl, embedFrameKey = 0, onReloadEmbed }: Av
               onClick={onReloadEmbed}
             >
               <RefreshCw className={`h-3.5 w-3.5 ${busy ? "animate-spin" : ""}`} />
-              Reload session
+              {status === "error" ? "Retry connection" : "Reload session"}
             </Button>
           )}
           <span className={`h-2.5 w-2.5 rounded-full ${color} ${busy ? "animate-pulse" : ""}`} />
@@ -198,7 +198,7 @@ const AvatarPanel = ({ status, streamUrl, embedFrameKey = 0, onReloadEmbed }: Av
               key={embedFrameKey}
               src={streamUrl}
               className="absolute inset-0 h-full w-full border-0"
-              allow="camera; microphone; autoplay"
+              allow="camera; microphone"
               title="Avatar Stream"
             />
           ) : (
@@ -217,6 +217,17 @@ const AvatarPanel = ({ status, streamUrl, embedFrameKey = 0, onReloadEmbed }: Av
                       </Link>
                       . Chat on the right still works.
                     </p>
+                    {onReloadEmbed && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-xs"
+                        onClick={onReloadEmbed}
+                      >
+                        Retry avatar connection
+                      </Button>
+                    )}
                   </div>
                 </>
               ) : (
