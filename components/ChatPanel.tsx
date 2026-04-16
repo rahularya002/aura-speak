@@ -1,16 +1,18 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Send } from "lucide-react";
+import { Send, ChevronDown, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import ReactMarkdown from "react-markdown";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 export interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
+  sources?: { document: string; snippet: string }[];
 }
 
 interface ChatPanelProps {
@@ -31,6 +33,7 @@ const ThinkingIndicator = () => (
 
 const ChatPanel = ({ messages, isLoading, onSend }: ChatPanelProps) => {
   const [input, setInput] = useState("");
+  const [openSourcesByMessage, setOpenSourcesByMessage] = useState<Record<string, boolean>>({});
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -73,6 +76,32 @@ const ChatPanel = ({ messages, isLoading, onSend }: ChatPanelProps) => {
                   msg.content
                 )}
               </div>
+              {msg.role === "assistant" && msg.sources && msg.sources.length > 0 && (
+                <Collapsible
+                  open={Boolean(openSourcesByMessage[msg.id])}
+                  onOpenChange={(open) =>
+                    setOpenSourcesByMessage((prev) => ({ ...prev, [msg.id]: open }))
+                  }
+                >
+                  <CollapsibleTrigger className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors">
+                    <FileText className="h-3 w-3" />
+                    <span>Sources ({msg.sources.length})</span>
+                    <ChevronDown
+                      className={`h-3 w-3 transition-transform duration-200 ${
+                        openSourcesByMessage[msg.id] ? "rotate-180" : ""
+                      }`}
+                    />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="mt-1 space-y-1 rounded-md border border-border/60 bg-background/60 p-2">
+                    {msg.sources.map((source, i) => (
+                      <div key={`${source.document}-${i}`} className="space-y-0.5 text-[11px]">
+                        <div className="font-medium text-foreground/90 truncate">{source.document}</div>
+                        <div className="text-muted-foreground line-clamp-2">{source.snippet}</div>
+                      </div>
+                    ))}
+                  </CollapsibleContent>
+                </Collapsible>
+              )}
             </div>
           ))}
           {isLoading && <ThinkingIndicator />}

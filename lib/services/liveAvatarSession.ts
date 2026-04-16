@@ -2,7 +2,10 @@
  * LiveAvatar embed session — see https://docs.liveavatar.com/
  * Quickstart: POST /v2/embeddings returns a short-lived iframe URL (data.url).
  */
+import { fetchWithTimeout } from "@/lib/providers/util";
+
 const LIVEAVATAR_API = "https://api.liveavatar.com";
+const LIVEAVATAR_TIMEOUT_MS = 20_000;
 
 /** Thrown when LiveAvatar returns a non-2xx or unusable body; `httpStatus` is the upstream status. */
 export class LiveAvatarHttpError extends Error {
@@ -75,7 +78,10 @@ function buildEmbeddingsBody(params: {
     is_sandbox: params.isSandbox,
   };
   if (params.voiceId?.trim()) {
-    body.voice_id = params.voiceId.trim();
+    const v = params.voiceId.trim();
+    body.voice_id = v;
+    // Compatibility alias for upstream variants.
+    body.voice = v;
   }
   const rawMax = process.env.LIVEAVATAR_MAX_SESSION_DURATION_SECONDS?.trim();
   if (rawMax && /^\d+$/.test(rawMax)) {
@@ -99,14 +105,18 @@ export async function createLiveAvatarEmbed(params: {
   voiceId?: string;
   isSandbox: boolean;
 }): Promise<LiveAvatarEmbedResult> {
-  const res = await fetch(`${LIVEAVATAR_API}/v2/embeddings`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-API-KEY": params.apiKey.trim(),
+  const res = await fetchWithTimeout(
+    `${LIVEAVATAR_API}/v2/embeddings`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-API-KEY": params.apiKey.trim(),
+      },
+      body: JSON.stringify(buildEmbeddingsBody(params)),
     },
-    body: JSON.stringify(buildEmbeddingsBody(params)),
-  });
+    LIVEAVATAR_TIMEOUT_MS
+  );
 
   const json = await readJsonSafe(res);
 

@@ -7,7 +7,7 @@ export interface AssistantItem {
 
 export interface AskResponse {
   answer: string;
-  sources?: string[];
+  sources?: SourceAttribution[];
 }
 
 export interface DocumentItem {
@@ -20,8 +20,20 @@ export interface DocumentItem {
 }
 
 export interface StreamSource {
+  document: string;
+  snippet: string;
+}
+
+export interface LiveAvatarVoice {
   id: string;
   name: string;
+  language?: string;
+  gender?: string;
+  provider?: string;
+}
+
+export interface SourceAttribution {
+  document: string;
   snippet: string;
 }
 
@@ -39,9 +51,12 @@ const getConfig = () => {
       liveAvatarApiKey: "",
       heygenApiKey: "",
       avatarId: "default",
+      avatarVoiceId: "",
       contextId: "",
       isSandbox: true,
       avatarProvider: "liveavatar" as "liveavatar" | "heygen",
+      enableVoicePlayback: false,
+      ttsVoiceId: "",
     };
   }
   const liveKey =
@@ -63,9 +78,12 @@ const getConfig = () => {
     liveAvatarApiKey: liveKey,
     heygenApiKey: localStorage.getItem("ai-assistant-heygen-key") ?? "",
     avatarId: localStorage.getItem("ai-assistant-avatar-id") ?? "default",
+    avatarVoiceId: localStorage.getItem("ai-assistant-avatar-voice-id") ?? "",
     contextId: localStorage.getItem("ai-assistant-liveavatar-context-id") ?? "",
     isSandbox,
     avatarProvider,
+    enableVoicePlayback: localStorage.getItem("ai-assistant-voice-playback") === "true",
+    ttsVoiceId: localStorage.getItem("ai-assistant-elevenlabs-voice-id") ?? "",
   };
 };
 
@@ -142,7 +160,7 @@ export async function askQuestion(query: string): Promise<AskResponse> {
       stream: false,
     }),
   });
-  const data = (await parseOrThrow(res)) as { answer: string; sources?: string[] };
+  const data = (await parseOrThrow(res)) as { answer: string; sources?: SourceAttribution[] };
   return { answer: data.answer, sources: data.sources };
 }
 
@@ -249,13 +267,29 @@ export async function fetchLiveAvatarContexts(
   return data.contexts ?? [];
 }
 
+/** Lists voices for the authenticated LiveAvatar account. */
+export async function fetchLiveAvatarVoices(
+  apiKey: string
+): Promise<LiveAvatarVoice[]> {
+  const res = await fetch(apiPath("/liveavatar/voices"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ apiKey }),
+  });
+  const data = (await parseOrThrow(res)) as {
+    voices?: LiveAvatarVoice[];
+  };
+  return data.voices ?? [];
+}
+
 export async function triggerAvatar(
   text = ""
-): Promise<{ sessionId?: string; streamUrl?: string }> {
+): Promise<{ sessionId?: string; streamUrl?: string; fallback?: "text-only" }> {
   const {
     liveAvatarApiKey,
     heygenApiKey,
     avatarId,
+    avatarVoiceId,
     contextId,
     isSandbox,
     avatarProvider,
@@ -269,6 +303,7 @@ export async function triggerAvatar(
       liveAvatarApiKey,
       heygenApiKey,
       avatarId,
+      voiceId: avatarVoiceId || undefined,
       contextId,
       isSandbox,
     }),
@@ -276,8 +311,25 @@ export async function triggerAvatar(
   const data = (await parseOrThrow(res)) as {
     sessionId?: string;
     streamUrl?: string;
+    fallback?: "text-only";
   };
   return data;
+}
+
+export async function generateSpeech(
+  text: string,
+  provider: "elevenlabs" = "elevenlabs",
+  voiceId?: string
+): Promise<Blob> {
+  const res = await fetch(apiPath("/tts"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text, provider, voiceId }),
+  });
+  if (!res.ok) {
+    await parseOrThrow(res);
+  }
+  return res.blob();
 }
 
 export async function getDocuments(): Promise<DocumentItem[]> {

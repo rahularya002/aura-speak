@@ -161,18 +161,23 @@ export async function replaceChunksForDoc(
 }
 
 export async function getChunksForAssistant(
-  assistantId = DEFAULT_ASSISTANT_ID
+  assistantId = DEFAULT_ASSISTANT_ID,
+  options?: { limit?: number }
 ): Promise<ChunkRecord[]> {
   const db = getDb();
+  const limit = options?.limit && options.limit > 0 ? Math.floor(options.limit) : null;
   const rows = db
-    .prepare(
-      `
+    .prepare(limit ? `
         SELECT id, assistant_id, doc_id, name, text, embedding_json
           FROM embedding_chunks
          WHERE assistant_id = ?
-      `
-    )
-    .all(assistantId) as ChunkRow[];
+         LIMIT ?
+      ` : `
+        SELECT id, assistant_id, doc_id, name, text, embedding_json
+          FROM embedding_chunks
+         WHERE assistant_id = ?
+      `)
+    .all(...(limit ? [assistantId, limit] : [assistantId])) as ChunkRow[];
   return rows.map(rowToChunk);
 }
 

@@ -1,5 +1,19 @@
 export type LLMProvider = "ollama" | "lmstudio" | "localai";
 
+const DEFAULT_SYSTEM_PROMPT = `You are speaking through a human-like avatar.
+
+Respond in a natural, conversational tone.
+
+Rules:
+
+* Use short sentences (10–15 words max)
+* Break responses into multiple lines
+* Avoid long paragraphs
+* Add natural pauses using '...'
+* Speak like a human, not like a textbook
+* Keep responses clear and simple
+* Avoid sounding robotic or overly formal`;
+
 export interface AssistantConfig {
   assistantName?: string;
   systemPrompt?: string;
@@ -16,6 +30,7 @@ export interface AssistantConfig {
 }
 
 export const defaultAssistantConfig = (): AssistantConfig => ({
+  systemPrompt: DEFAULT_SYSTEM_PROMPT,
   provider: "ollama",
   baseUrl: "http://localhost:11434",
   ollamaUrl: "http://localhost:11434",

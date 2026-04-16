@@ -1,6 +1,19 @@
+ "use client";
+
 import Link from "next/link";
-import { RefreshCw, Video, VideoOff, Wifi, WifiOff } from "lucide-react";
+import { useEffect, useState } from "react";
+import { RefreshCw, Video, VideoOff, Wifi, WifiOff, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { fetchLiveAvatarVoices, type LiveAvatarVoice } from "@/services/api";
+import { toast } from "sonner";
 
 export type AvatarStatus = "idle" | "connecting" | "speaking" | "error";
 
@@ -22,6 +35,61 @@ const statusConfig: Record<AvatarStatus, { label: string; color: string }> = {
 const AvatarPanel = ({ status, streamUrl, embedFrameKey = 0, onReloadEmbed }: AvatarPanelProps) => {
   const { label, color } = statusConfig[status];
   const busy = status === "connecting";
+  const [voices, setVoices] = useState<LiveAvatarVoice[]>([]);
+  const [loadingVoices, setLoadingVoices] = useState(false);
+  const [voiceId, setVoiceId] = useState("");
+  const [manualVoiceId, setManualVoiceId] = useState("");
+  const [apiKey, setApiKey] = useState("");
+  const [controlsReady, setControlsReady] = useState(false);
+  const [hasApiKey, setHasApiKey] = useState(false);
+
+  useEffect(() => {
+    const key =
+      localStorage.getItem("ai-assistant-liveavatar-api-key") ||
+      localStorage.getItem("ai-assistant-heygen-key") ||
+      "";
+    setApiKey(key);
+    setHasApiKey(Boolean(key.trim()));
+    const savedVoice = localStorage.getItem("ai-assistant-avatar-voice-id") ?? "";
+    setVoiceId(savedVoice);
+    setManualVoiceId(savedVoice);
+    setControlsReady(true);
+  }, []);
+
+  const loadVoices = async () => {
+    if (!apiKey.trim()) return;
+    setLoadingVoices(true);
+    try {
+      const list = await fetchLiveAvatarVoices(apiKey);
+      setVoices(list);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not load voices");
+    } finally {
+      setLoadingVoices(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!apiKey.trim()) return;
+    void loadVoices();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apiKey]);
+
+  const applyVoice = (next: string) => {
+    const resolved = next === "__default__" ? "" : next;
+    setVoiceId(resolved);
+    setManualVoiceId(resolved);
+    localStorage.setItem("ai-assistant-avatar-voice-id", resolved);
+    if (onReloadEmbed) onReloadEmbed();
+  };
+
+  const applyManualVoice = () => {
+    const next = manualVoiceId.trim();
+    setVoiceId(next);
+    localStorage.setItem("ai-assistant-avatar-voice-id", next);
+    toast.success(next ? "Manual voice_id applied" : "Using provider default voice");
+    if (onReloadEmbed) onReloadEmbed();
+  };
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -47,6 +115,58 @@ const AvatarPanel = ({ status, streamUrl, embedFrameKey = 0, onReloadEmbed }: Av
           )}
           <span className={`h-2.5 w-2.5 rounded-full ${color} ${busy ? "animate-pulse" : ""}`} />
         </div>
+      </div>
+      <div className="flex shrink-0 items-center gap-2 border-b border-border px-4 py-2">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          <Volume2 className="h-3.5 w-3.5 text-muted-foreground" />
+          <Select
+            value={voiceId || "__default__"}
+            onValueChange={applyVoice}
+            disabled={!controlsReady}
+          >
+            <SelectTrigger className="h-8 bg-background text-xs">
+              <SelectValue placeholder="Select voice" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__default__">Provider default voice</SelectItem>
+              {voices.map((v) => (
+                <SelectItem key={v.id} value={v.id}>
+                  {v.name}
+                  {v.language ? ` · ${v.language}` : ""}
+                  {v.provider ? ` · ${v.provider}` : ""}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-8 px-2 text-xs"
+          onClick={() => void loadVoices()}
+          disabled={loadingVoices || !controlsReady || !hasApiKey}
+          title="Reload voices"
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${loadingVoices ? "animate-spin" : ""}`} />
+        </Button>
+      </div>
+      <div className="flex shrink-0 items-center gap-2 border-b border-border px-4 py-2">
+        <Input
+          value={manualVoiceId}
+          onChange={(e) => setManualVoiceId(e.target.value)}
+          placeholder="Manual voice_id from LiveAvatar"
+          className="h-8 bg-background text-xs font-mono"
+        />
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-8 text-xs"
+          onClick={applyManualVoice}
+        >
+          Apply
+        </Button>
       </div>
       {streamUrl && (
         <div className="shrink-0 space-y-1.5 border-b border-border bg-muted/20 px-4 py-2 text-[11px] leading-snug text-muted-foreground">

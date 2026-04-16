@@ -3,8 +3,9 @@
 import { useState, useCallback, useEffect } from "react";
 import ChatPanel, { type Message } from "@/components/ChatPanel";
 import AvatarPanel, { type AvatarStatus } from "@/components/AvatarPanel";
-import { askQuestionStream, triggerAvatar } from "@/services/api";
+import { askQuestionStream, generateSpeech, getConfig, triggerAvatar } from "@/services/api";
 import { toast } from "sonner";
+import { formatForSpeech, trimResponse } from "@/lib/utils/speechFormatter";
 
 /** Avoid duplicate preload when React Strict Mode remounts (dev). */
 let avatarPreloadStarted = false;
@@ -17,10 +18,30 @@ const ChatPage = () => {
   /** Bumps when we need a fresh iframe even if the URL string repeats. */
   const [embedFrameKey, setEmbedFrameKey] = useState(0);
 
+  const maybePlayVoice = useCallback(async (text: string) => {
+    const config = getConfig();
+    if (!config.enableVoicePlayback || !text.trim()) return;
+    try {
+      const audioBlob = await generateSpeech(text, "elevenlabs", config.ttsVoiceId || undefined);
+      const objectUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(objectUrl);
+      audio.onended = () => URL.revokeObjectURL(objectUrl);
+      audio.onerror = () => URL.revokeObjectURL(objectUrl);
+      void audio.play();
+    } catch {
+      toast.warning("Voice playback unavailable");
+    }
+  }, []);
+
   const loadEmbed = useCallback(async (text = "") => {
     setAvatarStatus("connecting");
     try {
       const res = await triggerAvatar(text);
+      if (res.fallback === "text-only") {
+        setAvatarStatus("idle");
+        toast.warning("Avatar unavailable. Continuing in text-only mode.");
+        return;
+      }
       if (res.streamUrl) {
         setStreamUrl(res.streamUrl);
         setEmbedFrameKey((k) => k + 1);
@@ -59,11 +80,24 @@ const ChatPage = () => {
             );
           }
         },
+        onSources: (sources) => {
+          setMessages((prev) =>
+            prev.map((m) => (m.id === assistantId ? { ...m, sources } : m))
+          );
+        },
       });
 
+      const rawText = fullAnswer;
+      const trimmed = trimResponse(rawText);
+      const speechText = formatForSpeech(trimmed || rawText) || rawText;
       setAvatarStatus("connecting");
-      triggerAvatar(fullAnswer)
+      triggerAvatar(speechText)
         .then((res) => {
+          if (res.fallback === "text-only") {
+            setAvatarStatus("idle");
+            toast.warning("Avatar unavailable. Continuing in text-only mode.");
+            return;
+          }
           if (res.streamUrl) {
             setStreamUrl(res.streamUrl);
             setEmbedFrameKey((k) => k + 1);
@@ -72,6 +106,7 @@ const ChatPage = () => {
           setTimeout(() => setAvatarStatus("idle"), 15000);
         })
         .catch(() => setAvatarStatus("error"));
+      void maybePlayVoice(rawText);
     } catch {
       setMessages((prev) => [
         ...prev,
@@ -85,7 +120,7 @@ const ChatPage = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [maybePlayVoice]);
 
   return (
     <div className="flex h-full min-h-0 w-full flex-1 flex-col lg:flex-row">

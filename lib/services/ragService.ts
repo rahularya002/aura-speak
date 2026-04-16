@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { AssistantConfig, ChunkRecord, DocumentRecord } from "@/lib/types/ai";
 import { embedTexts } from "@/lib/services/embeddingService";
 import { chunkText, extractTextFromFile } from "@/lib/text/extract";
-import { cosineSimilarity } from "@/lib/math/vector";
+import { cosineSimilarity, normalizeL2 } from "@/lib/math/vector";
 import {
   ensureUploadsDir,
   getChunksForAssistant,
@@ -17,11 +17,11 @@ import { uploadDirForAssistant } from "@/lib/db/client";
 
 const CHUNK_SIZE = 500;
 const CHUNK_OVERLAP = 50;
-const TOP_K = 5;
+const TOP_K = 3;
+const MAX_ASSISTANT_CHUNKS = 5000;
 
 export interface RetrievedSource {
-  id: string;
-  name: string;
+  document: string;
   snippet: string;
 }
 
@@ -31,7 +31,7 @@ export async function retrieveContext(
   assistantId: string
 ): Promise<{ context: string; sources: RetrievedSource[] }> {
   const baseUrl = config.baseUrl || config.ollamaUrl || "http://localhost:11434";
-  const chunks = await getChunksForAssistant(assistantId);
+  const chunks = await getChunksForAssistant(assistantId, { limit: MAX_ASSISTANT_CHUNKS });
   if (!chunks.length || !config.embeddingModel) {
     return { context: "", sources: [] };
   }
@@ -41,17 +41,23 @@ export async function retrieveContext(
     config.embeddingModel,
     [query]
   );
-  const scored = chunks
-    .map((c) => ({
-      chunk: c,
-      score: cosineSimilarity(qEmb, c.embedding),
-    }))
-    .sort((a, b) => b.score - a.score)
-    .slice(0, TOP_K);
+  const normalizedQuery = normalizeL2(qEmb);
+  const scored: Array<{ chunk: ChunkRecord; score: number }> = [];
+  for (const chunk of chunks) {
+    const score = cosineSimilarity(normalizedQuery, normalizeL2(chunk.embedding));
+    if (scored.length < TOP_K) {
+      scored.push({ chunk, score });
+      scored.sort((a, b) => a.score - b.score);
+      continue;
+    }
+    if (score <= scored[0].score) continue;
+    scored[0] = { chunk, score };
+    scored.sort((a, b) => a.score - b.score);
+  }
+  scored.sort((a, b) => b.score - a.score);
 
-  const sources: RetrievedSource[] = scored.map((s, i) => ({
-    id: `${s.chunk.id}-${i}`,
-    name: s.chunk.name,
+  const sources: RetrievedSource[] = scored.map((s) => ({
+    document: s.chunk.name,
     snippet: s.chunk.text.slice(0, 280) + (s.chunk.text.length > 280 ? "…" : ""),
   }));
 

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import ReactMarkdown from "react-markdown";
-import { askQuestionStream } from "@/services/api";
+import { askQuestionStream, generateSpeech, getConfig } from "@/services/api";
 import { useAssistant } from "@/contexts/AssistantContext";
 import { toast } from "sonner";
 
@@ -15,7 +15,7 @@ interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
-  sources?: string[];
+  sources?: { document: string; snippet: string }[];
 }
 
 const suggestedPrompts = [
@@ -99,9 +99,12 @@ const MessageBubble = ({ msg }: { msg: Message }) => {
             <CollapsibleContent>
               <div className="mt-1.5 space-y-1 pl-1">
                 {msg.sources.map((src, i) => (
-                  <div key={i} className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                  <div key={`${src.document}-${i}`} className="flex items-start gap-1.5 text-[11px] text-muted-foreground">
                     <FileText className="h-3 w-3 shrink-0" />
-                    <span className="truncate">{src}</span>
+                    <div className="space-y-0.5 min-w-0">
+                      <div className="truncate font-medium text-foreground/90">{src.document}</div>
+                      <div>{src.snippet}</div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -124,6 +127,21 @@ const Overview = () => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading]);
 
+  const maybePlayVoice = useCallback(async (text: string) => {
+    const config = getConfig();
+    if (!config.enableVoicePlayback || !text.trim()) return;
+    try {
+      const audioBlob = await generateSpeech(text, "elevenlabs", config.ttsVoiceId || undefined);
+      const objectUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(objectUrl);
+      audio.onended = () => URL.revokeObjectURL(objectUrl);
+      audio.onerror = () => URL.revokeObjectURL(objectUrl);
+      void audio.play();
+    } catch {
+      toast.warning("Voice playback unavailable");
+    }
+  }, []);
+
   const handleSend = useCallback(async (query: string) => {
     const userMsg: Message = { id: crypto.randomUUID(), role: "user", content: query };
     const assistantId = crypto.randomUUID();
@@ -131,9 +149,11 @@ const Overview = () => {
     setIsLoading(true);
 
     let started = false;
+    let fullAnswer = "";
     try {
       await askQuestionStream(query, {
         onToken: (t) => {
+          fullAnswer += t;
           if (!started) {
             started = true;
             setMessages((prev) => [
@@ -149,12 +169,12 @@ const Overview = () => {
           }
         },
         onSources: (src) => {
-          const names = src.map((s) => s.name);
           setMessages((prev) =>
-            prev.map((m) => (m.id === assistantId ? { ...m, sources: names } : m))
+            prev.map((m) => (m.id === assistantId ? { ...m, sources: src } : m))
           );
         },
       });
+      void maybePlayVoice(fullAnswer);
     } catch {
       setMessages((prev) => [
         ...prev,
@@ -163,7 +183,7 @@ const Overview = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [maybePlayVoice]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

@@ -32,7 +32,7 @@ function ensureConfigRow(assistantId: string) {
   ).run(
     assistantId,
     "My Assistant",
-    "",
+    defaults.systemPrompt ?? "",
     defaults.provider,
     defaults.baseUrl,
     defaults.ollamaUrl ?? defaults.baseUrl,

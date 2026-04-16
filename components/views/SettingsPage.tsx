@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Save, Check, Loader2 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Save, Loader2 } from "lucide-react";
 import { updateConfig } from "@/services/api";
 import { useAutoSave } from "@/hooks/useAutoSave";
 import { SaveIndicator } from "@/components/SaveIndicator";
@@ -15,24 +16,32 @@ const SettingsPage = () => {
   const [assistantName, setAssistantName] = useState("My Assistant");
   const [systemPrompt, setSystemPrompt] = useState("");
   const [backendUrl, setBackendUrl] = useState("");
+  const [enableVoicePlayback, setEnableVoicePlayback] = useState(false);
+  const [elevenLabsVoiceId, setElevenLabsVoiceId] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
   const values = useMemo(() => ({
     assistantName,
     systemPrompt,
     backendUrl,
-  }), [assistantName, systemPrompt, backendUrl]);
+    enableVoicePlayback: String(enableVoicePlayback),
+    elevenLabsVoiceId,
+  }), [assistantName, systemPrompt, backendUrl, enableVoicePlayback, elevenLabsVoiceId]);
 
   const storageKeys = useMemo(() => ({
     assistantName: "ai-assistant-name",
     systemPrompt: "ai-assistant-system-prompt",
     backendUrl: "ai-assistant-backend-url",
+    enableVoicePlayback: "ai-assistant-voice-playback",
+    elevenLabsVoiceId: "ai-assistant-elevenlabs-voice-id",
   }), []);
 
   useEffect(() => {
     setAssistantName(localStorage.getItem("ai-assistant-name") || "My Assistant");
     setSystemPrompt(localStorage.getItem("ai-assistant-system-prompt") || "");
     setBackendUrl(localStorage.getItem("ai-assistant-backend-url") ?? "");
+    setEnableVoicePlayback(localStorage.getItem("ai-assistant-voice-playback") === "true");
+    setElevenLabsVoiceId(localStorage.getItem("ai-assistant-elevenlabs-voice-id") ?? "");
   }, []);
 
   const autoSaveStatus = useAutoSave(values, storageKeys);
@@ -42,6 +51,8 @@ const SettingsPage = () => {
     localStorage.setItem("ai-assistant-name", assistantName);
     localStorage.setItem("ai-assistant-system-prompt", systemPrompt);
     localStorage.setItem("ai-assistant-backend-url", backendUrl);
+    localStorage.setItem("ai-assistant-voice-playback", String(enableVoicePlayback));
+    localStorage.setItem("ai-assistant-elevenlabs-voice-id", elevenLabsVoiceId);
     try {
       await updateConfig({ assistantName, systemPrompt });
       toast.success("Settings saved");
@@ -85,6 +96,22 @@ const SettingsPage = () => {
               onChange={(e) => setAssistantName(e.target.value)}
               placeholder="My Assistant"
               className="bg-background border-border"
+            />
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs text-muted-foreground">Enable Voice Playback</Label>
+              <Switch
+                checked={enableVoicePlayback}
+                onCheckedChange={setEnableVoicePlayback}
+                aria-label="Enable voice playback"
+              />
+            </div>
+            <Input
+              value={elevenLabsVoiceId}
+              onChange={(e) => setElevenLabsVoiceId(e.target.value)}
+              placeholder="ElevenLabs voice id (optional)"
+              className="bg-background border-border font-mono text-sm"
             />
           </div>
         </div>

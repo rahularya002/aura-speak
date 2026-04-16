@@ -119,7 +119,7 @@ function upsertDefaultAssistant(db: Database.Database) {
   ).run(
     DEFAULT_ASSISTANT_ID,
     DEFAULT_ASSISTANT_NAME,
-    "",
+    fallback.systemPrompt ?? "",
     fallback.provider,
     fallback.baseUrl,
     fallback.ollamaUrl ?? fallback.baseUrl,
@@ -182,7 +182,7 @@ function migrateLegacyFiles(db: Database.Database) {
           `
         ).run(
           parsed.assistantName ?? DEFAULT_ASSISTANT_NAME,
-          parsed.systemPrompt ?? "",
+          parsed.systemPrompt ?? defaults.systemPrompt ?? "",
           merged.provider,
           merged.baseUrl,
           merged.ollamaUrl ?? merged.baseUrl,

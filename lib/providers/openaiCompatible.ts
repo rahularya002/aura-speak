@@ -1,9 +1,13 @@
-import { normalizeBaseUrl } from "@/lib/providers/util";
+import { fetchWithTimeout, normalizeBaseUrl } from "@/lib/providers/util";
+
+const CHAT_TIMEOUT_MS = 30_000;
+const EMBEDDING_TIMEOUT_MS = 20_000;
+const MODELS_TIMEOUT_MS = 10_000;
 
 /** LM Studio, LocalAI, and other OpenAI-compatible servers. */
 export async function listModels(baseUrl: string): Promise<string[]> {
   const u = normalizeOpenAI(baseUrl);
-  const res = await fetch(`${u}/models`, { cache: "no-store" });
+  const res = await fetchWithTimeout(`${u}/models`, { cache: "no-store" }, MODELS_TIMEOUT_MS);
   if (!res.ok) throw new Error(`OpenAI-compatible /models: ${res.status}`);
   const data = (await res.json()) as { data?: { id: string }[] };
   return (data.data ?? []).map((m) => m.id);
@@ -15,11 +19,15 @@ export async function embedBatch(
   inputs: string[]
 ): Promise<number[][]> {
   const u = normalizeOpenAI(baseUrl);
-  const res = await fetch(`${u}/embeddings`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ model, input: inputs }),
-  });
+  const res = await fetchWithTimeout(
+    `${u}/embeddings`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model, input: inputs }),
+    },
+    EMBEDDING_TIMEOUT_MS
+  );
   if (!res.ok) throw new Error(`OpenAI-compatible embeddings: ${res.status}`);
   const data = (await res.json()) as { data: { embedding: number[] }[] };
   return data.data.map((d) => d.embedding);
@@ -32,18 +40,22 @@ export async function chatComplete(
   opts: { temperature: number; topP: number; maxTokens: number }
 ): Promise<string> {
   const u = normalizeOpenAI(baseUrl);
-  const res = await fetch(`${u}/chat/completions`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model,
-      messages,
-      stream: false,
-      temperature: opts.temperature,
-      top_p: opts.topP,
-      max_tokens: opts.maxTokens,
-    }),
-  });
+  const res = await fetchWithTimeout(
+    `${u}/chat/completions`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model,
+        messages,
+        stream: false,
+        temperature: opts.temperature,
+        top_p: opts.topP,
+        max_tokens: opts.maxTokens,
+      }),
+    },
+    CHAT_TIMEOUT_MS
+  );
   if (!res.ok) {
     const err = await res.text();
     throw new Error(`OpenAI-compatible chat: ${res.status} ${err}`);
@@ -62,18 +74,22 @@ export async function* streamChat(
   opts: { temperature: number; topP: number; maxTokens: number }
 ): AsyncGenerator<string> {
   const u = normalizeOpenAI(baseUrl);
-  const res = await fetch(`${u}/chat/completions`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model,
-      messages,
-      stream: true,
-      temperature: opts.temperature,
-      top_p: opts.topP,
-      max_tokens: opts.maxTokens,
-    }),
-  });
+  const res = await fetchWithTimeout(
+    `${u}/chat/completions`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model,
+        messages,
+        stream: true,
+        temperature: opts.temperature,
+        top_p: opts.topP,
+        max_tokens: opts.maxTokens,
+      }),
+    },
+    CHAT_TIMEOUT_MS
+  );
   if (!res.ok || !res.body) throw new Error(`OpenAI-compatible stream: ${res.status}`);
   const reader = res.body.getReader();
   const dec = new TextDecoder();

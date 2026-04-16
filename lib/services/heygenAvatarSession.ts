@@ -2,7 +2,10 @@
  * Legacy HeyGen Streaming API — enable with AVATAR_BACKEND=heygen.
  * Migration: https://docs.liveavatar.com/ (HeyGen to LiveAvatar Migration)
  */
+import { fetchWithTimeout } from "@/lib/providers/util";
+
 const HEYGEN_BASE = "https://api.heygen.com";
+const HEYGEN_TIMEOUT_MS = 20_000;
 
 function parseHeyGenError(json: Record<string, unknown>, fallback: string): string {
   if (typeof json.message === "string" && json.message.trim()) return json.message;
@@ -75,14 +78,18 @@ export async function createHeyGenAvatarSession(params: {
     ...(avatar_id ? { avatar_id } : {}),
   };
 
-  const res = await fetch(`${HEYGEN_BASE}/v1/streaming.new`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
+  const res = await fetchWithTimeout(
+    `${HEYGEN_BASE}/v1/streaming.new`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+      },
+      body: JSON.stringify(body),
     },
-    body: JSON.stringify(body),
-  });
+    HEYGEN_TIMEOUT_MS
+  );
 
   const json = await readJsonSafe(res);
 
@@ -100,17 +107,21 @@ export async function createHeyGenAvatarSession(params: {
   const sessionId = findSessionId(data) ?? findSessionId(json);
 
   if (sessionId && params.text?.trim()) {
-    const taskRes = await fetch(`${HEYGEN_BASE}/v1/streaming.task`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
+    const taskRes = await fetchWithTimeout(
+      `${HEYGEN_BASE}/v1/streaming.task`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": apiKey,
+        },
+        body: JSON.stringify({
+          session_id: sessionId,
+          text: params.text,
+        }),
       },
-      body: JSON.stringify({
-        session_id: sessionId,
-        text: params.text,
-      }),
-    });
+      HEYGEN_TIMEOUT_MS
+    );
     const taskJson = await taskRes.json().catch(() => ({}));
     if (taskRes.ok) {
       streamUrl =

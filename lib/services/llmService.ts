@@ -2,6 +2,7 @@ import type { LLMProvider } from "@/lib/types/ai";
 import * as ollama from "@/lib/providers/ollama";
 import * as lmstudio from "@/lib/providers/lmstudio";
 import * as localai from "@/lib/providers/localai";
+import { isRetriableError } from "@/lib/providers/util";
 
 export interface GenerateParams {
   provider: LLMProvider;
@@ -32,6 +33,15 @@ async function* mergeStreams(
   }
 }
 
+async function withRetryOnce<T>(task: () => Promise<T>): Promise<T> {
+  try {
+    return await task();
+  } catch (first) {
+    if (!isRetriableError(first)) throw first;
+  }
+  return task();
+}
+
 export async function generateResponse(params: GenerateParams): Promise<GenerateResult> {
   const { provider, baseUrl, model, prompt, messages, stream, temperature, topP, maxTokens } =
     params;
@@ -40,37 +50,33 @@ export async function generateResponse(params: GenerateParams): Promise<Generate
   const opts = { temperature, topP, maxTokens };
 
   if (!stream) {
-    let text: string;
-    switch (provider) {
-      case "ollama":
-        text = await ollama.chatComplete(baseUrl, model, msgs, opts);
-        break;
-      case "lmstudio":
-        text = await lmstudio.chatComplete(baseUrl, model, msgs, opts);
-        break;
-      case "localai":
-        text = await localai.chatComplete(baseUrl, model, msgs, opts);
-        break;
-      default:
-        throw new Error(`Unknown provider: ${provider}`);
-    }
+    const text = await withRetryOnce(async () => {
+      switch (provider) {
+        case "ollama":
+          return ollama.chatComplete(baseUrl, model, msgs, opts);
+        case "lmstudio":
+          return lmstudio.chatComplete(baseUrl, model, msgs, opts);
+        case "localai":
+          return localai.chatComplete(baseUrl, model, msgs, opts);
+        default:
+          throw new Error(`Unknown provider: ${provider}`);
+      }
+    });
     return { mode: "text", text };
   }
 
-  let gen: AsyncGenerator<string>;
-  switch (provider) {
-    case "ollama":
-      gen = ollama.streamChat(baseUrl, model, msgs, opts);
-      break;
-    case "lmstudio":
-      gen = lmstudio.streamChat(baseUrl, model, msgs, opts);
-      break;
-    case "localai":
-      gen = localai.streamChat(baseUrl, model, msgs, opts);
-      break;
-    default:
-      throw new Error(`Unknown provider: ${provider}`);
-  }
+  const gen = await withRetryOnce(async () => {
+    switch (provider) {
+      case "ollama":
+        return ollama.streamChat(baseUrl, model, msgs, opts);
+      case "lmstudio":
+        return lmstudio.streamChat(baseUrl, model, msgs, opts);
+      case "localai":
+        return localai.streamChat(baseUrl, model, msgs, opts);
+      default:
+        throw new Error(`Unknown provider: ${provider}`);
+    }
+  });
 
   const encoder = new TextEncoder();
   const streamOut = new ReadableStream<Uint8Array>({

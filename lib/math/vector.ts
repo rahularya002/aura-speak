@@ -11,3 +11,18 @@ export function cosineSimilarity(a: number[], b: number[]): number {
   const d = Math.sqrt(na) * Math.sqrt(nb);
   return d === 0 ? 0 : dot / d;
 }
+
+export function normalizeL2(vector: number[]): number[] {
+  if (!vector.length) return [];
+  let sumSquares = 0;
+  for (let i = 0; i < vector.length; i++) {
+    sumSquares += vector[i] * vector[i];
+  }
+  const magnitude = Math.sqrt(sumSquares);
+  if (!magnitude) return vector.slice();
+  const out = new Array<number>(vector.length);
+  for (let i = 0; i < vector.length; i++) {
+    out[i] = vector[i] / magnitude;
+  }
+  return out;
+}

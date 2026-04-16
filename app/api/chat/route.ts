@@ -6,8 +6,10 @@ import { generateResponse } from "@/lib/services/llmService";
 import { retrieveContext } from "@/lib/services/ragService";
 import { insertChatMessage, listChatHistory } from "@/lib/store/chatStore";
 import type { AssistantConfig } from "@/lib/types/ai";
+import { withApiLogging } from "@/lib/api/log";
 
 export const runtime = "nodejs";
+const PROMPT_HISTORY_LIMIT = 12;
 
 function buildMessages(
   config: AssistantConfig,
@@ -36,125 +38,133 @@ function buildMessages(
 }
 
 export async function POST(request: Request) {
-  const json = await request.json().catch(() => ({}));
-  const parsed = chatBodySchema.safeParse(json);
-  if (!parsed.success) {
-    return jsonError(400, "INVALID_CHAT_BODY", "Invalid chat payload", parsed.error.flatten());
-  }
-  const body = parsed.data;
-  const assistantId = body.assistant_id || "default";
-  const query = (body.message ?? body.query ?? "").trim();
-  if (!query) {
-    return jsonError(400, "MISSING_MESSAGE", "message or query is required");
-  }
-  const config = await readConfig(assistantId);
-  const baseUrl = config.baseUrl || config.ollamaUrl || "http://localhost:11434";
-
-  let serverHistory = body.messages;
-  if (!serverHistory?.length) {
-    const history = await listChatHistory({ assistantId, limit: 24, offset: 0 });
-    serverHistory = history.map((m) => ({ role: m.role, content: m.content }));
-  }
-  const { context, sources } = await retrieveContext(query, config, assistantId);
-  const messages = buildMessages(config, query, context, serverHistory);
-
-  const genParams = {
-    provider: config.provider,
-    baseUrl,
-    model: config.llmModel,
-    prompt: query,
-    messages,
-    stream: Boolean(body.stream),
-    temperature: config.temperature,
-    topP: config.topP,
-    maxTokens: config.maxTokens,
-  };
-  await insertChatMessage({ assistantId, role: "user", content: query });
-
-  if (!body.stream) {
-    try {
-      const result = await generateResponse(genParams);
-      if (result.mode !== "text") {
-        return jsonError(500, "INVALID_CHAT_MODE", "Expected non-streaming response");
-      }
-      await insertChatMessage({
-        assistantId,
-        role: "assistant",
-        content: result.text,
-      });
-      return NextResponse.json({
-        answer: result.text,
-        sources: sources.map((s) => s.name),
-      });
-    } catch (e) {
-      return jsonError(
-        502,
-        "CHAT_GENERATION_FAILED",
-        e instanceof Error ? e.message : "Chat generation failed"
-      );
+  return withApiLogging(request, async () => {
+    const json = await request.json().catch(() => ({}));
+    const parsed = chatBodySchema.safeParse(json);
+    if (!parsed.success) {
+      return jsonError(400, "INVALID_CHAT_BODY", "Invalid chat payload", parsed.error.flatten());
     }
-  }
+    const body = parsed.data;
+    const assistantId = body.assistant_id || "default";
+    const query = (body.message ?? body.query ?? "").trim();
+    if (!query) {
+      return jsonError(400, "MISSING_MESSAGE", "message or query is required");
+    }
+    const config = await readConfig(assistantId);
+    const baseUrl = config.baseUrl || config.ollamaUrl || "http://localhost:11434";
 
-  let result;
-  try {
-    result = await generateResponse({ ...genParams, stream: true });
-  } catch (e) {
-    return jsonError(
-      502,
-      "CHAT_STREAM_INIT_FAILED",
-      e instanceof Error ? e.message : "Failed to initialize stream"
-    );
-  }
-  if (result.mode !== "stream") {
-    return jsonError(500, "INVALID_CHAT_MODE", "Expected streaming response");
-  }
+    let serverHistory = body.messages;
+    if (!serverHistory?.length) {
+      const history = await listChatHistory({ assistantId, limit: 24, offset: 0 });
+      serverHistory = history.map((m) => ({ role: m.role, content: m.content }));
+    }
+    if (serverHistory?.length) {
+      serverHistory = serverHistory.slice(-PROMPT_HISTORY_LIMIT);
+    }
+    const { context, sources } = await retrieveContext(query, config, assistantId);
+    const messages = buildMessages(config, query, context, serverHistory);
 
-  const encoder = new TextEncoder();
-  const decoder = new TextDecoder();
-  const tokenStream = result.stream;
-  const sourcePayload = sources.map((s) => ({ id: s.id, name: s.name, snippet: s.snippet }));
-  let fullAnswer = "";
+    const genParams = {
+      provider: config.provider,
+      baseUrl,
+      model: config.llmModel,
+      prompt: query,
+      messages,
+      stream: Boolean(body.stream),
+      temperature: config.temperature,
+      topP: config.topP,
+      maxTokens: config.maxTokens,
+    };
+    await insertChatMessage({ assistantId, role: "user", content: query });
 
-  const sse = new ReadableStream<Uint8Array>({
-    async start(controller) {
+    if (!body.stream) {
       try {
-        const reader = tokenStream.getReader();
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          const chunk = decoder.decode(value, { stream: true });
-          if (chunk) {
-            fullAnswer += chunk;
-            controller.enqueue(
-              encoder.encode(`data: ${JSON.stringify({ type: "token", t: chunk })}\n\n`)
-            );
-          }
+        const result = await generateResponse(genParams);
+        if (result.mode !== "text") {
+          return jsonError(500, "INVALID_CHAT_MODE", "Expected non-streaming response");
         }
-        controller.enqueue(
-          encoder.encode(`data: ${JSON.stringify({ type: "sources", sources: sourcePayload })}\n\n`)
-        );
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "done" })}\n\n`));
         await insertChatMessage({
           assistantId,
           role: "assistant",
-          content: fullAnswer,
+          content: result.text,
         });
-        controller.close();
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        controller.enqueue(
-          encoder.encode(`data: ${JSON.stringify({ type: "error", message: msg })}\n\n`)
+        return NextResponse.json({
+          answer: result.text,
+          sources,
+        });
+      } catch {
+        return jsonError(
+          502,
+          "MODEL_UNAVAILABLE",
+          "Model unavailable. Please try again."
         );
-        controller.close();
       }
-    },
-  });
+    }
 
-  return new Response(sse, {
-    headers: {
-      "Content-Type": "text/event-stream; charset=utf-8",
-      "Cache-Control": "no-cache, no-transform",
-      Connection: "keep-alive",
-    },
+    let result;
+    try {
+      result = await generateResponse({ ...genParams, stream: true });
+    } catch {
+      return jsonError(
+        502,
+        "MODEL_UNAVAILABLE",
+        "Model unavailable. Please try again."
+      );
+    }
+    if (result.mode !== "stream") {
+      return jsonError(500, "INVALID_CHAT_MODE", "Expected streaming response");
+    }
+
+    const encoder = new TextEncoder();
+    const decoder = new TextDecoder();
+    const tokenStream = result.stream;
+    const sourcePayload = sources.map((s) => ({
+      document: s.document,
+      snippet: s.snippet,
+    }));
+    let fullAnswer = "";
+
+    const sse = new ReadableStream<Uint8Array>({
+      async start(controller) {
+        try {
+          const reader = tokenStream.getReader();
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            const chunk = decoder.decode(value, { stream: true });
+            if (chunk) {
+              fullAnswer += chunk;
+              controller.enqueue(
+                encoder.encode(`data: ${JSON.stringify({ type: "token", t: chunk })}\n\n`)
+              );
+            }
+          }
+          controller.enqueue(
+            encoder.encode(`data: ${JSON.stringify({ type: "sources", sources: sourcePayload })}\n\n`)
+          );
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "done" })}\n\n`));
+          await insertChatMessage({
+            assistantId,
+            role: "assistant",
+            content: fullAnswer,
+          });
+          controller.close();
+        } catch {
+          const msg = "Model unavailable. Please try again.";
+          controller.enqueue(
+            encoder.encode(`data: ${JSON.stringify({ type: "error", message: msg })}\n\n`)
+          );
+          controller.close();
+        }
+      },
+    });
+
+    return new Response(sse, {
+      headers: {
+        "Content-Type": "text/event-stream; charset=utf-8",
+        "Cache-Control": "no-cache, no-transform",
+        Connection: "keep-alive",
+      },
+    });
   });
 }

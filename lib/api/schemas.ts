@@ -59,6 +59,10 @@ export const liveAvatarContextsBodySchema = z.object({
   apiKey: z.string().min(1),
 });
 
+export const liveAvatarVoicesBodySchema = z.object({
+  apiKey: z.string().min(1),
+});
+
 export const avatarBodySchema = z.object({
   /** HeyGen: empty = session/iframe only (no streaming.task). LiveAvatar ignores text for embed. */
   text: z.string().default(""),
@@ -75,4 +79,10 @@ export const avatarBodySchema = z.object({
 export const modelsConnectSchema = z.object({
   provider: llmProviderSchema,
   base_url: nonEmpty,
+});
+
+export const ttsBodySchema = z.object({
+  text: z.string().min(1),
+  provider: z.enum(["elevenlabs"]),
+  voiceId: z.string().optional(),
 });

@@ -90,7 +90,7 @@ export async function createAssistant(
     ).run(
       id,
       name,
-      "",
+      defaults.systemPrompt ?? "",
       defaults.provider,
       defaults.baseUrl,
       defaults.ollamaUrl ?? defaults.baseUrl,

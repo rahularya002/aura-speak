@@ -1,6 +1,7 @@
 import { LIVEAVATAR_SANDBOX_WAYNE_AVATAR_ID } from "@/lib/constants/liveavatar";
 import { createLiveAvatarEmbed } from "@/lib/services/liveAvatarSession";
 import { createHeyGenAvatarSession } from "@/lib/services/heygenAvatarSession";
+import { shapeSpeechText } from "@/lib/text/speech";
 
 export { LIVEAVATAR_SANDBOX_WAYNE_AVATAR_ID };
 export type CreateAvatarSessionParams = {
@@ -28,8 +29,9 @@ export async function createAvatarSession(
     (process.env.AVATAR_BACKEND === "heygen" ? "heygen" : "liveavatar");
 
   if (backend === "heygen") {
+    const spokenText = shapeSpeechText(params.text, { maxSentences: 3, maxChars: 380 });
     return createHeyGenAvatarSession({
-      text: params.text,
+      text: spokenText,
       heygenApiKey: params.heygenApiKey,
       avatarId: params.avatarId,
     });

@@ -1,8 +1,12 @@
-import { normalizeBaseUrl } from "@/lib/providers/util";
+import { fetchWithTimeout, normalizeBaseUrl } from "@/lib/providers/util";
+
+const CHAT_TIMEOUT_MS = 30_000;
+const EMBEDDING_TIMEOUT_MS = 20_000;
+const MODELS_TIMEOUT_MS = 10_000;
 
 export async function listModels(baseUrl: string): Promise<string[]> {
   const u = normalizeBaseUrl(baseUrl);
-  const res = await fetch(`${u}/api/tags`, { cache: "no-store" });
+  const res = await fetchWithTimeout(`${u}/api/tags`, { cache: "no-store" }, MODELS_TIMEOUT_MS);
   if (!res.ok) throw new Error(`Ollama /api/tags: ${res.status}`);
   const data = (await res.json()) as { models?: { name: string }[] };
   return (data.models ?? []).map((m) => m.name);
@@ -17,11 +21,15 @@ export async function embedBatch(
   if (inputs.length === 0) return [];
 
   const tryBatch = async (input: string | string[]) => {
-    const res = await fetch(`${u}/api/embeddings`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ model, input }),
-    });
+    const res = await fetchWithTimeout(
+      `${u}/api/embeddings`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model, input }),
+      },
+      EMBEDDING_TIMEOUT_MS
+    );
     if (!res.ok) return null;
     const data = (await res.json()) as {
       embedding?: number[];
@@ -51,20 +59,24 @@ export async function chatComplete(
   opts: { temperature: number; topP: number; maxTokens: number }
 ): Promise<string> {
   const u = normalizeBaseUrl(baseUrl);
-  const res = await fetch(`${u}/api/chat`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model,
-      messages,
-      stream: false,
-      options: {
-        temperature: opts.temperature,
-        top_p: opts.topP,
-        num_predict: opts.maxTokens,
-      },
-    }),
-  });
+  const res = await fetchWithTimeout(
+    `${u}/api/chat`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model,
+        messages,
+        stream: false,
+        options: {
+          temperature: opts.temperature,
+          top_p: opts.topP,
+          num_predict: opts.maxTokens,
+        },
+      }),
+    },
+    CHAT_TIMEOUT_MS
+  );
   if (!res.ok) {
     const err = await res.text();
     throw new Error(`Ollama chat: ${res.status} ${err}`);
@@ -80,20 +92,24 @@ export async function* streamChat(
   opts: { temperature: number; topP: number; maxTokens: number }
 ): AsyncGenerator<string> {
   const u = normalizeBaseUrl(baseUrl);
-  const res = await fetch(`${u}/api/chat`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model,
-      messages,
-      stream: true,
-      options: {
-        temperature: opts.temperature,
-        top_p: opts.topP,
-        num_predict: opts.maxTokens,
-      },
-    }),
-  });
+  const res = await fetchWithTimeout(
+    `${u}/api/chat`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model,
+        messages,
+        stream: true,
+        options: {
+          temperature: opts.temperature,
+          top_p: opts.topP,
+          num_predict: opts.maxTokens,
+        },
+      }),
+    },
+    CHAT_TIMEOUT_MS
+  );
   if (!res.ok || !res.body) {
     throw new Error(`Ollama stream: ${res.status}`);
   }

@@ -14,7 +14,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Play, Save, Video, Volume2, Loader2, UserCircle, ExternalLink, RefreshCw } from "lucide-react";
-import { fetchLiveAvatarContexts, triggerAvatar, updateConfig } from "@/services/api";
+import {
+  fetchLiveAvatarContexts,
+  fetchLiveAvatarVoices,
+  triggerAvatar,
+  updateConfig,
+  type LiveAvatarVoice,
+} from "@/services/api";
 import { LIVEAVATAR_SANDBOX_WAYNE_AVATAR_ID } from "@/lib/constants/liveavatar";
 import { toast } from "sonner";
 
@@ -23,13 +29,16 @@ const AvatarSettings = () => {
   const [contextId, setContextId] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [isSandbox, setIsSandbox] = useState(true);
-  const [voice, setVoice] = useState("default");
+  const [voice, setVoice] = useState("");
   const [speed, setSpeed] = useState(1.0);
   const [isTesting, setIsTesting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [contexts, setContexts] = useState<{ id: string; name: string }[]>([]);
+  const [voices, setVoices] = useState<LiveAvatarVoice[]>([]);
   const [loadingContexts, setLoadingContexts] = useState(false);
+  const [loadingVoices, setLoadingVoices] = useState(false);
   const [manualContext, setManualContext] = useState(false);
+  const [manualVoiceId, setManualVoiceId] = useState("");
 
   useEffect(() => {
     setAvatarId(localStorage.getItem("ai-assistant-avatar-id") || "");
@@ -41,7 +50,16 @@ const AvatarSettings = () => {
     setApiKey(key);
     const sb = localStorage.getItem("ai-assistant-liveavatar-sandbox");
     setIsSandbox(sb === null ? true : sb === "true");
+    const savedVoice = localStorage.getItem("ai-assistant-avatar-voice-id") || "";
+    setVoice(savedVoice);
+    setManualVoiceId(savedVoice);
   }, []);
+
+  useEffect(() => {
+    if (!apiKey.trim()) return;
+    void loadVoices();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apiKey]);
 
   const hasAvatar = Boolean(avatarId.trim());
 
@@ -78,19 +96,62 @@ const AvatarSettings = () => {
     }
   };
 
+  const loadVoices = async () => {
+    if (!apiKey.trim()) {
+      toast.error("Enter your LiveAvatar API key first.");
+      return;
+    }
+    setLoadingVoices(true);
+    try {
+      const list = await fetchLiveAvatarVoices(apiKey);
+      setVoices(list);
+      toast.success(
+        list.length === 0
+          ? "No voices found for this API key."
+          : `Loaded ${list.length} voice${list.length === 1 ? "" : "s"}.`
+      );
+      if (list.length > 0 && !voice) {
+        const elevenLabs = list.find((v) =>
+          (v.provider ?? "").toLowerCase().includes("eleven")
+        );
+        const picked = elevenLabs ?? list[0];
+        setVoice(picked.id);
+        localStorage.setItem("ai-assistant-avatar-voice-id", picked.id);
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not load voices.");
+    } finally {
+      setLoadingVoices(false);
+    }
+  };
+
   const persistLocal = () => {
     localStorage.setItem("ai-assistant-avatar-id", avatarId);
     localStorage.setItem("ai-assistant-liveavatar-context-id", contextId);
     localStorage.setItem("ai-assistant-liveavatar-api-key", apiKey);
     localStorage.setItem("ai-assistant-heygen-key", apiKey);
     localStorage.setItem("ai-assistant-liveavatar-sandbox", isSandbox ? "true" : "false");
+    localStorage.setItem("ai-assistant-avatar-voice-id", voice);
+  };
+
+  const updateVoice = (next: string) => {
+    setVoice(next);
+    setManualVoiceId(next);
+    localStorage.setItem("ai-assistant-avatar-voice-id", next);
+  };
+
+  const applyManualVoiceId = () => {
+    const next = manualVoiceId.trim();
+    setVoice(next);
+    localStorage.setItem("ai-assistant-avatar-voice-id", next);
+    toast.success(next ? "Manual voice_id applied" : "Using provider default voice");
   };
 
   const handleSave = async () => {
     setIsSaving(true);
     persistLocal();
     try {
-      await updateConfig({ avatarId, voice, speed });
+      await updateConfig({ avatarId, voiceId: voice, speed });
       toast.success("Avatar settings saved");
     } catch {
       toast.error("Failed to save");
@@ -104,7 +165,11 @@ const AvatarSettings = () => {
     try {
       persistLocal();
       await triggerAvatar("Hello! This is a test of the avatar playback.");
-      toast.success("Embed session created — check chat/overview for the iframe if wired there.");
+      toast.success(
+        voice
+          ? `Embed session created with voice_id: ${voice}`
+          : "Embed session created — provider default voice."
+      );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Test failed.";
       toast.error(msg);
@@ -180,6 +245,18 @@ const AvatarSettings = () => {
             To spend less today: use <strong className="text-foreground">sandbox</strong> (Wayne avatar only, no credits), or set server env{" "}
             <code className="text-xs bg-background px-1 rounded border border-border">LIVEAVATAR_MAX_SESSION_DURATION_SECONDS</code> to cap
             each embed session length.
+          </p>
+          <p className="text-xs border-t border-border pt-2 mt-2">
+            To sound more human, set a conversational persona in your LiveAvatar context (short replies, contractions, warm tone). Official guidance:{" "}
+            <a
+              href="https://help.heygen.com/en/articles/9585924-prompting-your-liveavatar"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline"
+            >
+              Prompting your LiveAvatar
+            </a>
+            . Keep responses under 2-3 sentences for better pacing.
           </p>
         </div>
       </div>
@@ -354,19 +431,73 @@ const AvatarSettings = () => {
           <div className="rounded-lg border border-border bg-card p-5 space-y-4 shadow-card transition-shadow hover:shadow-card-hover">
             <Label className="text-sm font-medium">Voice & Playback</Label>
             <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">Voice (UI only)</Label>
-              <Select value={voice} onValueChange={setVoice}>
+              <Label className="text-xs text-muted-foreground">Voice ID</Label>
+              <Select
+                value={voice || "__default__"}
+                onValueChange={(v) => updateVoice(v === "__default__" ? "" : v)}
+              >
                 <SelectTrigger className="bg-background border-border">
-                  <SelectValue />
+                  <SelectValue placeholder="Select voice or load from LiveAvatar" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="default">Default</SelectItem>
-                  <SelectItem value="male-1">Male 1</SelectItem>
-                  <SelectItem value="female-1">Female 1</SelectItem>
-                  <SelectItem value="male-2">Male 2</SelectItem>
-                  <SelectItem value="female-2">Female 2</SelectItem>
+                  <SelectItem value="__default__">Provider default voice</SelectItem>
+                  {voices.length === 0 ? (
+                    <SelectItem value="__none__" disabled>
+                      No loaded voices
+                    </SelectItem>
+                  ) : (
+                    voices.map((v) => (
+                      <SelectItem key={v.id} value={v.id}>
+                        {v.name}
+                        {v.language ? ` · ${v.language}` : ""}
+                        {v.gender ? ` · ${v.gender}` : ""}
+                        {v.provider ? ` · ${v.provider}` : ""}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="w-full"
+                onClick={loadVoices}
+                disabled={loadingVoices || !apiKey.trim()}
+              >
+                {loadingVoices ? (
+                  <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-3.5 w-3.5 mr-2" />
+                )}
+                Load voices from LiveAvatar
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                Fetches available voices via API and uses selected <code className="bg-muted px-1 rounded">voice_id</code> in avatar requests.
+              </p>
+              <div className="space-y-2 rounded-md border border-border p-2">
+                <Label className="text-xs text-muted-foreground">Manual voice_id override</Label>
+                <Input
+                  value={manualVoiceId}
+                  onChange={(e) => setManualVoiceId(e.target.value)}
+                  placeholder="Paste voice_id from LiveAvatar UI"
+                  className="bg-background border-border font-mono text-xs"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={applyManualVoiceId}
+                >
+                  Apply manual voice_id
+                </Button>
+              </div>
+              {voice ? (
+                <p className="text-xs text-muted-foreground font-mono break-all">
+                  Selected voice_id: {voice}
+                </p>
+              ) : null}
             </div>
             <div className="space-y-2">
               <div className="flex justify-between">
