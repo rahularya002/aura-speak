@@ -53,6 +53,11 @@ const ChatPage = () => {
     }
   }, []);
 
+  const markAvatarSpeaking = useCallback(() => {
+    setAvatarStatus("speaking");
+    setTimeout(() => setAvatarStatus("idle"), 15000);
+  }, []);
+
   useEffect(() => {
     if (avatarPreloadStarted) return;
     avatarPreloadStarted = true;
@@ -90,22 +95,47 @@ const ChatPage = () => {
       const rawText = fullAnswer;
       const trimmed = trimResponse(rawText);
       const speechText = formatForSpeech(trimmed || rawText) || rawText;
-      setAvatarStatus("connecting");
-      triggerAvatar(speechText)
-        .then((res) => {
-          if (res.fallback === "text-only") {
-            setAvatarStatus("idle");
-            toast.warning("Avatar unavailable. Continuing in text-only mode.");
-            return;
-          }
-          if (res.streamUrl) {
-            setStreamUrl(res.streamUrl);
-            setEmbedFrameKey((k) => k + 1);
-          }
-          setAvatarStatus("speaking");
-          setTimeout(() => setAvatarStatus("idle"), 15000);
-        })
-        .catch(() => setAvatarStatus("error"));
+      const { avatarProvider } = getConfig();
+
+      // LiveAvatar embed should be long-lived. Recreating it for every reply can
+      // cause LiveKit reconnection churn and unstable playback in production.
+      if (avatarProvider === "liveavatar") {
+        if (!streamUrl) {
+          setAvatarStatus("connecting");
+          triggerAvatar("")
+            .then((res) => {
+              if (res.fallback === "text-only") {
+                setAvatarStatus("idle");
+                toast.warning("Avatar unavailable. Continuing in text-only mode.");
+                return;
+              }
+              if (res.streamUrl) {
+                setStreamUrl(res.streamUrl);
+                setEmbedFrameKey((k) => k + 1);
+              }
+              markAvatarSpeaking();
+            })
+            .catch(() => setAvatarStatus("error"));
+        } else {
+          markAvatarSpeaking();
+        }
+      } else {
+        setAvatarStatus("connecting");
+        triggerAvatar(speechText)
+          .then((res) => {
+            if (res.fallback === "text-only") {
+              setAvatarStatus("idle");
+              toast.warning("Avatar unavailable. Continuing in text-only mode.");
+              return;
+            }
+            if (res.streamUrl) {
+              setStreamUrl(res.streamUrl);
+              setEmbedFrameKey((k) => k + 1);
+            }
+            markAvatarSpeaking();
+          })
+          .catch(() => setAvatarStatus("error"));
+      }
       void maybePlayVoice(rawText);
     } catch {
       setMessages((prev) => [
@@ -120,7 +150,7 @@ const ChatPage = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [maybePlayVoice]);
+  }, [markAvatarSpeaking, maybePlayVoice, streamUrl]);
 
   return (
     <div className="flex h-full min-h-0 w-full flex-1 flex-col lg:flex-row">
