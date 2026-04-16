@@ -3,8 +3,33 @@ import { readConfig, writeConfig } from "@/lib/store/configStore";
 import { configPutSchema } from "@/lib/api/schemas";
 import { jsonError } from "@/lib/api/errors";
 import { withApiLogging } from "@/lib/api/log";
+import { defaultAssistantConfig, type AssistantConfig } from "@/lib/types/ai";
 
 export const runtime = "nodejs";
+
+function isStorageRuntimeError(error: unknown): boolean {
+  const msg = error instanceof Error ? error.message : String(error);
+  const normalized = msg.toLowerCase();
+  return (
+    normalized.includes("readonly") ||
+    normalized.includes("read-only") ||
+    normalized.includes("permission denied") ||
+    normalized.includes("sqlite_cantopen") ||
+    normalized.includes("sqlitedb") ||
+    normalized.includes("unable to open database file")
+  );
+}
+
+function mergeConfigFallback(partial: Partial<AssistantConfig>): AssistantConfig {
+  const base = defaultAssistantConfig();
+  const out: AssistantConfig = { ...base, ...partial };
+  if (partial.baseUrl || partial.ollamaUrl) {
+    const url = (partial.baseUrl ?? partial.ollamaUrl ?? base.baseUrl).replace(/\/$/, "");
+    out.baseUrl = url;
+    if (out.provider === "ollama") out.ollamaUrl = url;
+  }
+  return out;
+}
 
 export async function GET(request: Request) {
   return withApiLogging(request, async () => {
@@ -14,6 +39,15 @@ export async function GET(request: Request) {
       const config = await readConfig(assistantId);
       return NextResponse.json({ assistant_id: assistantId, ...config });
     } catch (e) {
+      if (isStorageRuntimeError(e)) {
+        const config = defaultAssistantConfig();
+        return NextResponse.json({
+          assistant_id: assistantId,
+          ...config,
+          persistence: "ephemeral",
+          warning: "Persistent config storage unavailable in this runtime",
+        });
+      }
       return jsonError(
         500,
         "CONFIG_READ_FAILED",
@@ -48,6 +82,15 @@ export async function PUT(request: Request) {
       const next = await writeConfig(partial, assistantId);
       return NextResponse.json({ assistant_id: assistantId, ...next });
     } catch (e) {
+      if (isStorageRuntimeError(e)) {
+        const next = mergeConfigFallback(partial);
+        return NextResponse.json({
+          assistant_id: assistantId,
+          ...next,
+          persistence: "ephemeral",
+          warning: "Config accepted but not persisted in this runtime",
+        });
+      }
       return jsonError(
         500,
         "CONFIG_WRITE_FAILED",

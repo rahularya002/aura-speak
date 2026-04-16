@@ -108,8 +108,8 @@ flowchart TB
 
 - `**POST /api/assistants`** — validate body `{ name, description? }`, insert row, seed `assistant_config` from `[defaultAssistantConfig()](e:\aura-speak\lib\types\ai.ts)`, return assistant.
 - `**GET /api/assistants`** — list all.
-- `**GET /api/assistants/[id]/route.ts**` — assistant row + merged config JSON.
-- `**DELETE /api/assistants/[id]/route.ts**` — transactional delete: config, documents metadata, chunks, chat_messages, then assistant row (and delete upload files under `.data/uploads/{assistant_id}/...` if you namespace uploads).
+- `**GET /api/assistants/[id]/route.ts`** — assistant row + merged config JSON.
+- `**DELETE /api/assistants/[id]/route.ts`** — transactional delete: config, documents metadata, chunks, chat_messages, then assistant row (and delete upload files under `.data/uploads/{assistant_id}/...` if you namespace uploads).
 
 ---
 
@@ -126,9 +126,9 @@ flowchart TB
 - Extend `[DocumentRecord](e:\aura-speak\lib\types\ai.ts)` / `[ChunkRecord](e:\aura-speak\lib\types\ai.ts)` with `assistantId` (or snake_case in DB only).
 - `[ingestDocumentBuffer](e:\aura-speak\lib\services\ragService.ts)`: accept `assistant_id`; write chunks/documents with FK.
 - `[retrieveContext](e:\aura-speak\lib\services\ragService.ts)`: `getChunksByAssistant(assistant_id)` instead of `getAllChunks()`.
-- `**GET /api/knowledge?assistant_id=**` — filter list.
-- `**POST /api/knowledge**` — `assistant_id` from query or multipart field (multipart is cleaner for FormData).
-- `**POST /api/reindex**` — accept `assistant_id`, re-embed all docs for that assistant.
+- `**GET /api/knowledge?assistant_id=`** — filter list.
+- `**POST /api/knowledge`** — `assistant_id` from query or multipart field (multipart is cleaner for FormData).
+- `**POST /api/reindex`** — accept `assistant_id`, re-embed all docs for that assistant.
 - Update `[knowledge/[id]/route.ts](e:\aura-speak\app\api\knowledge\[id]\route.ts)` to verify document belongs to assistant (from header or query).
 
 ---
@@ -148,8 +148,8 @@ flowchart TB
 ## Phase 6 — Models + health
 
 - Add `**app/api/models/connect/route.ts`** — `POST` with `{ provider, base_url }`, delegate to same logic as existing `[POST /api/models](e:\aura-speak\app\api\models\route.ts)` (avoid duplication via shared handler).
-- `**GET /api/models?assistant_id=**` — optional: use that assistant’s `baseUrl`/`provider` from DB instead of global; else keep current behavior for backward compatibility.
-- `**GET /api/health**` — `{ status: "ok", providers: { ollama: boolean } }` by probing default Ollama URL or env; extend with `db: "ok"` after SQLite connect.
+- `**GET /api/models?assistant_id=`** — optional: use that assistant’s `baseUrl`/`provider` from DB instead of global; else keep current behavior for backward compatibility.
+- `**GET /api/health`** — `{ status: "ok", providers: { ollama: boolean } }` by probing default Ollama URL or env; extend with `db: "ok"` after SQLite connect.
 
 ---
 
@@ -174,7 +174,7 @@ flowchart TB
 Backend changes are useless without the client sending `assistant_id`. Minimum follow-ups (separate small PR or same if coordinated):
 
 - `[services/api.ts](e:\aura-speak\services\api.ts)` — pass `assistant_id` from `[useAssistant](e:\aura-speak\contexts\AssistantContext.tsx)` into `fetch` for config, chat, knowledge, avatar.
-- Replace or sync “assistants list” with `**GET /api/assistants**` so assistants survive refresh across devices.
+- Replace or sync “assistants list” with `**GET /api/assistants`** so assistants survive refresh across devices.
 
 ---
 
