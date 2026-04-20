@@ -47,7 +47,7 @@ import { useAssistant } from "@/contexts/AssistantContext";
 import { toast } from "sonner";
 
 const navItems = [
-  { title: "Overview", url: "/", icon: LayoutDashboard },
+  { title: "Overview", url: "/overview", icon: LayoutDashboard },
   { title: "Knowledge Base", url: "/knowledge", icon: Database },
   { title: "Model Settings", url: "/models", icon: Cpu },
   { title: "Avatar Settings", url: "/avatar", icon: UserCircle },
@@ -78,14 +78,25 @@ export function AppSidebar() {
     <>
       <Sidebar
         collapsible="icon"
-        className="border-r border-sidebar-border bg-sidebar shadow-[4px_0_24px_-12px_rgba(15,23,42,0.12)]"
+        className="border-r border-outline-variant/35 bg-surface-container-low text-on-surface shadow-[4px_0_24px_-12px_rgba(15,23,42,0.12)]"
       >
         <SidebarContent>
+          <div className="px-4 pt-4 pb-1">
+            <div className="font-headline text-base font-bold tracking-tight text-on-surface">
+              Atelier AI
+            </div>
+            {!collapsed && (
+              <p className="mt-0.5 text-[11px] text-on-surface-variant">
+                Vocal AI Avatar Assistant
+              </p>
+            )}
+          </div>
+
           {/* Assistant Switcher */}
           <div className="px-3 pt-4 pb-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex w-full items-center gap-2.5 rounded-lg border border-border bg-card px-3 py-2.5 text-left hover:bg-accent transition-colors shadow-xs">
+                <button className="flex w-full items-center gap-2.5 rounded-xl border border-outline-variant/50 bg-surface-container-lowest px-3 py-2.5 text-left hover:bg-surface-container-high transition-colors shadow-xs">
                   <div className="flex items-center justify-center h-7 w-7 rounded-md bg-primary/10 shrink-0">
                     <Bot className="h-4 w-4 text-primary" />
                   </div>
@@ -127,7 +138,7 @@ export function AppSidebar() {
           </div>
 
           <SidebarGroup className="py-2">
-            <SidebarGroupLabel className="px-4 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
+            <SidebarGroupLabel className="px-4 font-label text-[11px] uppercase tracking-[0.12em] text-on-surface-variant">
               {!collapsed && "Navigation"}
             </SidebarGroupLabel>
             <SidebarGroupContent>
@@ -144,8 +155,8 @@ export function AppSidebar() {
                         <NavLink
                           href={item.url}
                           end={item.url === "/"}
-                          className="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-all duration-150"
-                          activeClassName="bg-accent text-foreground font-medium"
+                          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-all duration-150"
+                          activeClassName="bg-surface-container-highest text-on-surface font-medium"
                         >
                           <item.icon className="h-4 w-4 shrink-0" />
                           {!collapsed && <span>{item.title}</span>}

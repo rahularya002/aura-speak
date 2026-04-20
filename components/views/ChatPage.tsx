@@ -172,9 +172,11 @@ const ChatPage = () => {
   }, [ensureLiveAvatarEmbed, markAvatarSpeaking, maybePlayVoice]);
 
   return (
-    <div className="flex h-full min-h-0 w-full flex-1 flex-col lg:flex-row">
+    <div className="relative flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden bg-surface lg:flex-row">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(218,226,253,0.45),transparent_45%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_bottom_right,rgba(212,200,249,0.25),transparent_42%)]" />
       {/* flex column so AvatarPanel can grow to full row height */}
-      <div className="flex max-lg:min-h-[min(50vh,20rem)] min-h-0 flex-1 flex-col border-y border-border min-w-0 lg:flex-[1.25] lg:border-x lg:border-y-0">
+      <div className="relative flex max-lg:min-h-[min(50vh,20rem)] min-h-0 min-w-0 flex-1 flex-col border-y border-outline-variant/35 bg-surface-container-low/50 lg:flex-[1.25] lg:border-x lg:border-y-0">
         <AvatarPanel
           status={avatarStatus}
           streamUrl={streamUrl}
@@ -182,7 +184,7 @@ const ChatPage = () => {
           onReloadEmbed={() => void loadEmbed("")}
         />
       </div>
-      <div className="flex min-h-0 flex-1 flex-col border-t border-border lg:max-w-xl lg:w-[min(100%,28rem)] lg:border-l lg:border-t-0">
+      <div className="relative flex min-h-0 flex-1 flex-col border-t border-outline-variant/35 bg-surface-container-lowest/90 backdrop-blur lg:w-[min(100%,29rem)] lg:max-w-xl lg:border-l lg:border-t-0">
         <ChatPanel messages={messages} isLoading={isLoading} onSend={handleSend} />
       </div>
     </div>

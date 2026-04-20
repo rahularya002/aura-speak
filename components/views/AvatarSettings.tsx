@@ -183,7 +183,7 @@ const AvatarSettings = () => {
       <div>
         <h2 className="text-lg font-semibold text-foreground">Avatar Settings</h2>
         <p className="text-sm text-muted-foreground mt-0.5">
-          Uses{" "}
+          Configure{" "}
           <a
             href="https://docs.liveavatar.com/"
             target="_blank"
@@ -193,72 +193,8 @@ const AvatarSettings = () => {
             LiveAvatar
             <ExternalLink className="h-3 w-3" />
           </a>{" "}
-          (<code className="text-xs bg-muted px-1 rounded">POST /v2/embeddings</code>) for a embeddable session URL.
-          Contexts are account resources; the API lets you{" "}
-          <a
-            href="https://docs.liveavatar.com/api-reference/contexts/list-user-contexts"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-primary hover:underline"
-          >
-            list them
-          </a>{" "}
-          (<code className="text-xs bg-muted px-1 rounded">GET /v1/contexts</code>) and pick one below.
-          Legacy HeyGen Streaming is available server-side with <code className="text-xs bg-muted px-1 rounded">AVATAR_BACKEND=heygen</code>.
+          API key, avatar, context, and voice.
         </p>
-        <div className="mt-4 rounded-lg border border-border bg-muted/30 p-4 space-y-2 text-sm text-muted-foreground leading-relaxed">
-          <p className="font-medium text-foreground">LiveAvatar has two session types: FULL and LITE</p>
-          <p>
-            <a
-              href="https://docs.liveavatar.com/docs/full-mode/overview.md"
-              className="text-primary font-medium hover:underline"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              FULL
-            </a>
-            : LiveAvatar runs STT → LLM → TTS → avatar (all-in-one).{" "}
-            <a
-              href="https://docs.liveavatar.com/docs/lite-mode/overview.md"
-              className="text-primary font-medium hover:underline"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              LITE
-            </a>
-            : you run STT/LLM/TTS; LiveAvatar only renders video from the audio you send (usually fewer credits per minute).
-          </p>
-          <p>
-            <strong className="text-foreground">This app</strong> uses the{" "}
-            <strong className="text-foreground">Embed API</strong> (
-            <code className="text-xs bg-background px-1 rounded border border-border">POST /v2/embeddings</code>) and loads LiveAvatar&apos;s{" "}
-            <strong className="text-foreground">hosted iframe</strong>. That experience is the managed, full pipeline — effectively{" "}
-            <strong className="text-foreground">FULL-style</strong> usage and billing. There is no LITE switch on the embed endpoint.
-          </p>
-          <p>
-            A true <strong className="text-foreground">LITE</strong> integration would use{" "}
-            <code className="text-xs bg-background px-1 rounded border border-border">POST /v1/sessions/token</code> with{" "}
-            <code className="text-xs bg-background px-1 rounded border border-border">&quot;mode&quot;: &quot;LITE&quot;</code> and the Web SDK to pipe
-            audio — not implemented here yet.
-          </p>
-          <p className="text-xs border-t border-border pt-2 mt-2">
-            To spend less today: use <strong className="text-foreground">sandbox</strong> (Wayne avatar only, no credits), or set server env{" "}
-            <code className="text-xs bg-background px-1 rounded border border-border">LIVEAVATAR_MAX_SESSION_DURATION_SECONDS</code> to cap
-            each embed session length.
-          </p>
-          <p className="text-xs border-t border-border pt-2 mt-2">
-            To sound more human, set a conversational persona in your LiveAvatar context (short replies, contractions, warm tone). Official guidance:{" "}
-            <a
-              href="https://help.heygen.com/en/articles/9585924-prompting-your-liveavatar"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary hover:underline"
-            >
-              Prompting your LiveAvatar
-            </a>
-            . Keep responses under 2-3 sentences for better pacing.
-          </p>
-        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
@@ -390,8 +326,7 @@ const AvatarSettings = () => {
                     Load contexts from LiveAvatar
                   </Button>
                   <p className="text-xs text-muted-foreground">
-                    Uses your API key to call{" "}
-                    <code className="bg-muted px-1 rounded">GET /v1/contexts</code> — same as the official docs.
+                    Fetches available contexts for your API key.
                   </p>
                 </>
               )}
@@ -418,11 +353,8 @@ const AvatarSettings = () => {
               </div>
               {isSandbox && (
                 <p className="text-xs text-muted-foreground pl-7 max-w-lg leading-relaxed">
-                  Sandbox only allows the <span className="font-mono text-[11px]">Wayne</span> avatar (
-                  <span className="font-mono text-[11px] break-all">{LIVEAVATAR_SANDBOX_WAYNE_AVATAR_ID}</span>
-                  ). Using any other Avatar ID causes the embed to load but{" "}
-                  <code className="rounded bg-muted px-1">/v1/sessions/start</code> to return 400. Turn off sandbox
-                  to use your own avatar (uses credits).
+                  Sandbox only allows the Wayne avatar (
+                  <span className="font-mono text-[11px] break-all">{LIVEAVATAR_SANDBOX_WAYNE_AVATAR_ID}</span>).
                 </p>
               )}
             </div>

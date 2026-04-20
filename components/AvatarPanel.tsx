@@ -92,12 +92,12 @@ const AvatarPanel = ({ status, streamUrl, embedFrameKey = 0, onReloadEmbed }: Av
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="flex min-h-0 flex-1 flex-col font-body">
       {/* Status bar */}
-      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-4 py-3">
+      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-outline-variant/35 bg-surface-container-lowest/85 px-4 py-3 backdrop-blur">
         <div className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
           {status === "error" ? <WifiOff className="h-4 w-4 shrink-0" /> : <Wifi className="h-4 w-4 shrink-0" />}
-          <span>{label}</span>
+          <span className="font-headline text-on-surface">{label}</span>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {onReloadEmbed && (
@@ -105,7 +105,7 @@ const AvatarPanel = ({ status, streamUrl, embedFrameKey = 0, onReloadEmbed }: Av
               type="button"
               variant="outline"
               size="sm"
-              className="h-8 gap-1.5 text-xs"
+              className="h-8 gap-1.5 border-outline-variant/40 bg-surface-container-low text-xs hover:bg-surface-container-high"
               disabled={busy}
               onClick={onReloadEmbed}
             >
@@ -116,7 +116,7 @@ const AvatarPanel = ({ status, streamUrl, embedFrameKey = 0, onReloadEmbed }: Av
           <span className={`h-2.5 w-2.5 rounded-full ${color} ${busy ? "animate-pulse" : ""}`} />
         </div>
       </div>
-      <div className="flex shrink-0 items-center gap-2 border-b border-border px-4 py-2">
+      <div className="flex shrink-0 items-center gap-2 border-b border-outline-variant/35 bg-surface-container-lowest/70 px-4 py-2">
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <Volume2 className="h-3.5 w-3.5 text-muted-foreground" />
           <Select
@@ -124,7 +124,7 @@ const AvatarPanel = ({ status, streamUrl, embedFrameKey = 0, onReloadEmbed }: Av
             onValueChange={applyVoice}
             disabled={!controlsReady}
           >
-            <SelectTrigger className="h-8 bg-background text-xs">
+            <SelectTrigger className="h-8 border-outline-variant/40 bg-surface-container-low text-xs">
               <SelectValue placeholder="Select voice" />
             </SelectTrigger>
             <SelectContent>
@@ -143,7 +143,7 @@ const AvatarPanel = ({ status, streamUrl, embedFrameKey = 0, onReloadEmbed }: Av
           type="button"
           variant="ghost"
           size="sm"
-          className="h-8 px-2 text-xs"
+          className="h-8 px-2 text-xs text-on-surface-variant hover:bg-surface-container-high"
           onClick={() => void loadVoices()}
           disabled={loadingVoices || !controlsReady || !hasApiKey}
           title="Reload voices"
@@ -151,25 +151,25 @@ const AvatarPanel = ({ status, streamUrl, embedFrameKey = 0, onReloadEmbed }: Av
           <RefreshCw className={`h-3.5 w-3.5 ${loadingVoices ? "animate-spin" : ""}`} />
         </Button>
       </div>
-      <div className="flex shrink-0 items-center gap-2 border-b border-border px-4 py-2">
+      <div className="flex shrink-0 items-center gap-2 border-b border-outline-variant/35 bg-surface-container-lowest/70 px-4 py-2">
         <Input
           value={manualVoiceId}
           onChange={(e) => setManualVoiceId(e.target.value)}
           placeholder="Manual voice_id from LiveAvatar"
-          className="h-8 bg-background text-xs font-mono"
+          className="h-8 border-outline-variant/40 bg-surface-container-low text-xs font-mono"
         />
         <Button
           type="button"
           variant="outline"
           size="sm"
-          className="h-8 text-xs"
+          className="h-8 border-outline-variant/40 bg-surface-container-low text-xs hover:bg-surface-container-high"
           onClick={applyManualVoice}
         >
           Apply
         </Button>
       </div>
       {streamUrl && (
-        <div className="shrink-0 space-y-1.5 border-b border-border bg-muted/20 px-4 py-2 text-[11px] leading-snug text-muted-foreground">
+        <div className="shrink-0 space-y-1.5 border-b border-outline-variant/35 bg-surface-container-low px-4 py-2 text-[11px] leading-snug text-muted-foreground">
           <p className="text-[10px] text-foreground/90">
             LiveAvatar <span className="font-medium">FULL</span> vs <span className="font-medium">LITE</span>: this screen uses the{" "}
             <span className="font-medium">embed</span> iframe (FULL-style pipeline).{" "}
@@ -192,7 +192,7 @@ const AvatarPanel = ({ status, streamUrl, embedFrameKey = 0, onReloadEmbed }: Av
 
       {/* Fills all space below the header; iframe uses absolute fill so it isn’t height-auto */}
       <div className="relative min-h-0 flex-1 p-3">
-        <div className="relative h-full min-h-[200px] w-full overflow-hidden rounded-xl bg-muted/30">
+        <div className="relative h-full min-h-[200px] w-full overflow-hidden rounded-2xl border border-outline-variant/30 bg-surface-container-high/40 shadow-[0_20px_60px_-48px_rgba(87,95,117,0.7)]">
           {streamUrl ? (
             <iframe
               key={embedFrameKey}

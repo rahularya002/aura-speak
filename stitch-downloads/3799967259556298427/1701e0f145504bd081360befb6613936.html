@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Atelier AI | The Digital Atelier</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "background": "#f8f9fa",
+                      "on-error-container": "#6e0a12",
+                      "on-surface-variant": "#5a6062",
+                      "tertiary-container": "#d4c8f9",
+                      "surface-container-low": "#f1f4f5",
+                      "on-secondary": "#f8f8ff",
+                      "surface-variant": "#dee3e6",
+                      "inverse-surface": "#0c0f10",
+                      "primary": "#575f75",
+                      "surface-bright": "#f8f9fa",
+                      "on-primary-fixed-variant": "#535b71",
+                      "surface-container-high": "#e5e9eb",
+                      "secondary-container": "#d7e3f8",
+                      "error": "#a83836",
+                      "tertiary-fixed": "#d4c8f9",
+                      "on-tertiary-fixed": "#352c53",
+                      "on-secondary-fixed": "#354050",
+                      "inverse-primary": "#dae2fd",
+                      "surface-tint": "#575f75",
+                      "tertiary-fixed-dim": "#c6baea",
+                      "primary-dim": "#4b5369",
+                      "error-dim": "#67040d",
+                      "outline-variant": "#adb3b5",
+                      "on-tertiary-fixed-variant": "#524972",
+                      "surface-container": "#ebeef0",
+                      "secondary-fixed": "#d7e3f8",
+                      "primary-fixed": "#dae2fd",
+                      "tertiary-dim": "#564d76",
+                      "primary-fixed-dim": "#ccd4ee",
+                      "secondary-fixed-dim": "#c9d5e9",
+                      "on-tertiary": "#fdf7ff",
+                      "on-secondary-fixed-variant": "#515c6d",
+                      "on-background": "#2d3335",
+                      "surface-dim": "#d5dbdd",
+                      "error-container": "#fa746f",
+                      "primary-container": "#dae2fd",
+                      "inverse-on-surface": "#9b9d9e",
+                      "tertiary": "#625983",
+                      "outline": "#767c7e",
+                      "on-error": "#fff7f6",
+                      "on-surface": "#2d3335",
+                      "surface-container-lowest": "#ffffff",
+                      "surface-container-highest": "#dee3e6",
+                      "surface": "#f8f9fa",
+                      "on-tertiary-container": "#494068",
+                      "secondary": "#546071",
+                      "on-primary": "#f9f8ff",
+                      "on-primary-fixed": "#373f54",
+                      "on-primary-container": "#4a5167",
+                      "on-secondary-container": "#475263",
+                      "secondary-dim": "#485465"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "fontFamily": {
+                      "headline": ["Manrope"],
+                      "body": ["Inter"],
+                      "label": ["Inter"]
+              }
+            },
+          },
+        }
+      </script>
+<style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8f9fa; color: #2d3335; }
+        .font-headline { font-family: 'Manrope', sans-serif; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .tonal-depth-via-blur { backdrop-filter: blur(24px); }
+    </style>
+</head>
+<body class="bg-background text-on-background selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- TopNavBar Shared Component -->
+<header class="z-50 sticky top-6 px-4">
+<nav class="bg-white/70 backdrop-blur-3xl rounded-full flex justify-between items-center max-w-5xl mx-auto px-6 py-3 w-full shadow-[0_8px_32px_0_rgba(45,51,53,0.06)] font-['Manrope'] tracking-tight font-semibold">
+<div class="text-xl font-bold tracking-tighter text-slate-900">Atelier AI</div>
+<!-- Desktop Nav -->
+<div class="hidden md:flex items-center gap-8">
+<a class="text-slate-900 font-bold hover:text-slate-900 transition-colors duration-300" href="#">Models</a>
+<a class="text-slate-500 font-medium hover:text-slate-900 transition-colors duration-300" href="#">Studio</a>
+<a class="text-slate-500 font-medium hover:text-slate-900 transition-colors duration-300" href="#">Enterprise</a>
+<a class="text-slate-500 font-medium hover:text-slate-900 transition-colors duration-300" href="#">Pricing</a>
+</div>
+<div class="flex items-center gap-4">
+<button class="material-symbols-outlined text-slate-700 hover:text-slate-900 transition-colors">account_circle</button>
+<button class="bg-primary text-on-primary px-6 py-2 rounded-full text-sm font-bold scale-95 active:scale-90 transition-transform">Get Started</button>
+</div>
+</nav>
+</header>
+<main>
+<!-- Hero Section -->
+<section class="relative pt-24 pb-32 px-6 overflow-hidden">
+<div class="max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 items-center">
+<div class="z-10">
+<span class="inline-block py-1 px-4 bg-secondary-container text-on-secondary-container rounded-full text-xs font-bold tracking-widest uppercase mb-6">Next Gen Avatars</span>
+<h1 class="text-6xl md:text-7xl font-headline font-extrabold tracking-tighter leading-[1.1] text-on-background mb-8">
+                        The Studio for <span class="text-primary italic">Digital Presence.</span>
+</h1>
+<p class="text-lg text-on-surface-variant max-w-lg mb-10 leading-relaxed">
+                        Design, deploy, and converse with high-fidelity AI avatars that understand your brand's unique knowledge base. Experience zero-latency human interaction.
+                    </p>
+<div class="flex flex-wrap gap-4">
+<button class="px-8 py-4 bg-primary text-on-primary rounded-xl font-bold text-lg hover:shadow-xl hover:shadow-primary/20 transition-all">Launch Studio</button>
+<button class="px-8 py-4 bg-surface-container-high text-on-surface rounded-xl font-bold text-lg hover:bg-surface-container-highest transition-colors">Book Demo</button>
+</div>
+</div>
+<!-- High-Fidelity UI Preview -->
+<div class="relative group">
+<div class="absolute -inset-4 bg-primary-container/20 rounded-[2rem] blur-3xl -z-10"></div>
+<div class="bg-surface-container-lowest rounded-3xl shadow-2xl shadow-slate-200/50 overflow-hidden border border-white/50 aspect-[4/3] flex flex-col">
+<!-- UI Header -->
+<div class="px-6 py-4 bg-surface-container-low flex justify-between items-center">
+<div class="flex items-center gap-3">
+<div class="w-3 h-3 rounded-full bg-error"></div>
+<div class="w-3 h-3 rounded-full bg-secondary-container"></div>
+<div class="w-3 h-3 rounded-full bg-tertiary-container"></div>
+</div>
+<div class="text-xs font-semibold text-on-surface-variant tracking-wider uppercase">Live Interaction: Studio Mode</div>
+</div>
+<!-- UI Main -->
+<div class="flex-1 grid grid-cols-5 gap-0">
+<!-- Sidebar Chat -->
+<div class="col-span-2 bg-surface-container-low p-6 flex flex-col gap-4">
+<div class="bg-surface-container-lowest p-3 rounded-xl rounded-bl-none shadow-sm text-sm">Hello! How can I help you with the Enterprise integration today?</div>
+<div class="bg-primary/10 p-3 rounded-xl rounded-br-none text-sm self-end">Explain the real-time latency optimization for 4K video.</div>
+<div class="bg-surface-container-lowest p-3 rounded-xl rounded-bl-none shadow-sm text-sm flex items-center gap-2">
+<span class="w-2 h-2 bg-primary rounded-full animate-pulse"></span>
+<span>Typing...</span>
+</div>
+<div class="mt-auto pt-4">
+<div class="bg-surface-container-highest rounded-lg px-4 py-2 text-xs text-on-surface-variant flex justify-between">
+<span>Latency: 140ms</span>
+<span>Bitrate: 8.4 Mbps</span>
+</div>
+</div>
+</div>
+<!-- Avatar Viewport -->
+<div class="col-span-3 relative">
+<img class="w-full h-full object-cover" data-alt="ultra realistic 3D human avatar face with soft studio lighting and neutral background for professional AI interaction" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBmndUhv7meShr-6YkVTsyZEO_mxrL2ILGM955d0VlGd2QTQiqo-FrkmKdc84Zewe4VlLq9zX8ES9qBOyc6R5A9dAnVbQMP8u45YSu1Z1C4u1t2n2FAZW_LYZbohj3srTRoKJ1PV52TLeb23rvv8jtDAx9zmw5GqYXP164qPH8AsqzgAzlkZCPcOgae73J-Uk3pRd27pcMUreqFReOsiJpp5p9cJNUrKy75oLiArWzE4SyV2nmjueY2R1qCoB7B69wM97mKCq6Mp9U"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+<div class="absolute bottom-6 right-6 flex flex-col gap-2">
+<div class="bg-white/80 backdrop-blur-xl p-2 rounded-lg flex items-center gap-2 shadow-lg">
+<span class="material-symbols-outlined text-sm text-primary" style="font-variation-settings: 'FILL' 1;">mic</span>
+<div class="w-24 h-1 bg-surface-container-high rounded-full overflow-hidden">
+<div class="w-1/2 h-full bg-primary"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Feature Bento Grid -->
+<section class="py-24 bg-surface">
+<div class="max-w-7xl mx-auto px-6">
+<div class="mb-16 max-w-2xl">
+<h2 class="text-4xl font-headline font-bold mb-4 tracking-tight">Engineered for the Atelier.</h2>
+<p class="text-on-surface-variant">A suite of tools designed to bridge the gap between artificial logic and human empathy.</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-4 md:grid-rows-2 gap-4 h-full md:h-[600px]">
+<!-- Large Card: Smart Knowledge -->
+<div class="md:col-span-2 md:row-span-2 bg-surface-container-low rounded-3xl p-8 flex flex-col justify-between group hover:bg-surface-container transition-colors duration-500">
+<div>
+<div class="w-12 h-12 bg-primary-container rounded-2xl flex items-center justify-center mb-6">
+<span class="material-symbols-outlined text-on-primary-container">psychology</span>
+</div>
+<h3 class="text-2xl font-headline font-bold mb-4">Smart Knowledge-Based AI</h3>
+<p class="text-on-surface-variant leading-relaxed">Upload documents, sync wikis, or scrape URLs. Your avatar becomes an expert on your specific domain in seconds.</p>
+</div>
+<div class="mt-8 bg-surface-container-lowest rounded-2xl p-4 shadow-sm">
+<div class="flex items-center gap-3 mb-3">
+<div class="w-2 h-2 rounded-full bg-green-500"></div>
+<span class="text-xs font-bold uppercase tracking-wider opacity-60">Knowledge Sources Synchronized</span>
+</div>
+<div class="space-y-2">
+<div class="h-1.5 w-full bg-surface-container-high rounded-full"></div>
+<div class="h-1.5 w-3/4 bg-surface-container-high rounded-full"></div>
+</div>
+</div>
+</div>
+<!-- Medium Card: Real-Time Avatar -->
+<div class="md:col-span-2 bg-secondary-container rounded-3xl p-8 flex flex-col justify-between hover:bg-secondary-fixed transition-colors">
+<div>
+<div class="flex justify-between items-start">
+<h3 class="text-xl font-headline font-bold text-on-secondary-container">Real-Time Talking Avatar</h3>
+<span class="material-symbols-outlined text-on-secondary-container">movie</span>
+</div>
+<p class="text-on-secondary-container/80 mt-2 text-sm">Industry leading lip-sync technology with sub-200ms latency.</p>
+</div>
+<div class="flex gap-2 mt-4 overflow-hidden">
+<div class="px-4 py-1.5 bg-on-secondary/10 rounded-full text-xs font-semibold text-on-secondary-container">High Def 4K</div>
+<div class="px-4 py-1.5 bg-on-secondary/10 rounded-full text-xs font-semibold text-on-secondary-container">Emotional Nuance</div>
+</div>
+</div>
+<!-- Small Card: BYOM -->
+<div class="bg-tertiary-container rounded-3xl p-6 flex flex-col justify-between hover:bg-tertiary-fixed transition-colors">
+<span class="material-symbols-outlined text-on-tertiary-container text-3xl">terminal</span>
+<h3 class="text-lg font-headline font-bold text-on-tertiary-container">Bring Your Own Model</h3>
+</div>
+<!-- Small Card: Easy Embedding -->
+<div class="bg-surface-container-highest rounded-3xl p-6 flex flex-col justify-between hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant text-3xl">code_blocks</span>
+<h3 class="text-lg font-headline font-bold">Easy Embedding</h3>
+</div>
+</div>
+</div>
+</section>
+<!-- How It Works -->
+<section class="py-24 bg-surface-container-lowest">
+<div class="max-w-7xl mx-auto px-6">
+<div class="text-center mb-20">
+<h2 class="text-4xl font-headline font-extrabold mb-4">From Blueprint to Presence.</h2>
+<p class="text-on-surface-variant max-w-xl mx-auto">Three steps to deploying a world-class AI experience across your platform.</p>
+</div>
+<div class="grid md:grid-cols-3 gap-12">
+<div class="relative">
+<div class="text-[120px] font-headline font-black text-surface-container-high absolute -top-16 -left-4 -z-10 opacity-50 select-none">01</div>
+<h4 class="text-xl font-bold mb-4">Design the Persona</h4>
+<p class="text-on-surface-variant leading-relaxed">Choose from our gallery of high-fidelity models or upload a custom character. Fine-tune voice attributes and personality traits.</p>
+</div>
+<div class="relative">
+<div class="text-[120px] font-headline font-black text-surface-container-high absolute -top-16 -left-4 -z-10 opacity-50 select-none">02</div>
+<h4 class="text-xl font-bold mb-4">Ingest Knowledge</h4>
+<p class="text-on-surface-variant leading-relaxed">Connect your APIs, documentation, or databases. Our RAG engine processes information to ensure accurate, context-aware responses.</p>
+</div>
+<div class="relative">
+<div class="text-[120px] font-headline font-black text-surface-container-high absolute -top-16 -left-4 -z-10 opacity-50 select-none">03</div>
+<h4 class="text-xl font-bold mb-4">Deploy Anywhere</h4>
+<p class="text-on-surface-variant leading-relaxed">Use our SDK to embed the avatar into your web, mobile, or VR application. Scale to millions of simultaneous sessions effortlessly.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Product Experience (Split Layout) -->
+<section class="py-24 bg-surface-container-low overflow-hidden">
+<div class="max-w-7xl mx-auto px-6">
+<div class="grid lg:grid-cols-2 gap-24 items-center">
+<div class="relative h-[500px] bg-surface-container-lowest rounded-3xl overflow-hidden shadow-xl">
+<img class="w-full h-full object-cover" data-alt="Modern analytics dashboard showing AI performance metrics, user engagement charts, and latency graphs with a clean minimalist UI" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBnvYwK8ovGE-nAu2Eh279o30bKuN6RRkbzVxCFhShH99Y-04ObNwr0mkxlu0yi0D53oqcjiBRk5dFThYtI3TUpELdaDO_AmHm7XH2naZktUK8sW_f2U_lQFMy24FhmujUsbwUGW5ntB6zUe7887mmLuatAwGhCvq3XNerLuSIG-DZ4huOGtXDOqcls4GNl5OAmgHzMDuu8MUOgysHHsfE52_2jluQ9vuoLgiiVyP_vlSrWtexJ3SkuCKMbJxGQylQNLDz7bsgZsEM"/>
+<div class="absolute inset-0 bg-primary/10 flex items-center justify-center">
+<div class="p-8 bg-white/90 backdrop-blur-xl rounded-2xl max-w-xs shadow-2xl">
+<h5 class="font-bold mb-2">Enterprise Ready</h5>
+<p class="text-sm text-on-surface-variant">Real-time performance metrics and conversation logs managed in one sleek dashboard.</p>
+</div>
+</div>
+</div>
+<div>
+<h2 class="text-4xl font-headline font-bold mb-8">Multi-Assistant Support for Global Teams.</h2>
+<div class="space-y-8">
+<div class="flex gap-6">
+<div class="w-12 h-12 flex-shrink-0 bg-primary-fixed rounded-xl flex items-center justify-center">
+<span class="material-symbols-outlined text-on-primary-fixed">translate</span>
+</div>
+<div>
+<h5 class="font-bold mb-1">Global Scale</h5>
+<p class="text-on-surface-variant text-sm">Deploy avatars that speak 40+ languages natively with local dialect support.</p>
+</div>
+</div>
+<div class="flex gap-6">
+<div class="w-12 h-12 flex-shrink-0 bg-secondary-fixed rounded-xl flex items-center justify-center">
+<span class="material-symbols-outlined text-on-secondary-fixed">bolt</span>
+</div>
+<div>
+<h5 class="font-bold mb-1">Real-Time Streaming</h5>
+<p class="text-on-surface-variant text-sm">Our proprietary streaming protocol ensures zero stuttering and consistent frame rates.</p>
+</div>
+</div>
+<div class="flex gap-6">
+<div class="w-12 h-12 flex-shrink-0 bg-tertiary-fixed rounded-xl flex items-center justify-center">
+<span class="material-symbols-outlined text-on-tertiary-fixed">hub</span>
+</div>
+<div>
+<h5 class="font-bold mb-1">Ecosystem Sync</h5>
+<p class="text-on-surface-variant text-sm">Connect with Slack, Salesforce, and Zendesk to keep your entire stack updated.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Use Cases -->
+<section class="py-24 bg-surface">
+<div class="max-w-7xl mx-auto px-6">
+<div class="flex justify-between items-end mb-16">
+<div>
+<h2 class="text-4xl font-headline font-bold">Limitless Presence.</h2>
+<p class="text-on-surface-variant mt-2">Where Atelier AI makes a difference.</p>
+</div>
+<div class="hidden md:flex gap-4">
+<button class="p-3 bg-surface-container-high rounded-full hover:bg-surface-container-highest transition-colors">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<button class="p-3 bg-primary text-on-primary rounded-full hover:shadow-lg transition-all">
+<span class="material-symbols-outlined">arrow_forward</span>
+</button>
+</div>
+</div>
+<div class="grid md:grid-cols-3 gap-8">
+<div class="group cursor-pointer">
+<div class="rounded-3xl overflow-hidden aspect-video mb-6 relative">
+<img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" data-alt="Customer support office with modern tech, soft lighting, professional and calm atmosphere" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAU5w8urRWf-KSt9UIXb4n_R2IuK0gBBIVy4dE-xxS7ABgY6egLqGEj4d_nzzRd1QpTYO9uiomTcra3izY9J4lW3qRolO4NWExbUI6P6jqulWGR1kAVMwCh3K5-r5fLtMalijHHRGqqOkFXqjs9I_cQb9Hrw5kMXemWztdQrkyPd-iT6WWsN35h2od2c_bRzJfXycOLW680X8lYL9PzfkFzsot0DrbhZzX33oFkaWVuEFZ0Se4z0AqHfXp3mffq9vCKlCrO0jh7zdI"/>
+<div class="absolute inset-0 bg-on-background/10"></div>
+</div>
+<h4 class="text-xl font-bold mb-2">Customer Experience</h4>
+<p class="text-sm text-on-surface-variant">24/7 human-like support that handles complex queries with brand-accurate empathy.</p>
+</div>
+<div class="group cursor-pointer">
+<div class="rounded-3xl overflow-hidden aspect-video mb-6 relative">
+<img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" data-alt="Digital classroom setting with students and advanced technological screens for immersive learning" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDzwW2GJj-Ba8q0OVTdsKo6xmoD5i7a0sexln7nXL3gB9H3pYu1G2ygr9cNfkEGcgAGvqQUBgC-HbfBS78QWUMg-SbEtT4ZWg_jkkY9mHS_W_NA7CSEmkqx6FAIKQEltS7OpYYcPe9I30DfO3P9o_XwKJM_rLxU3ZqeXTaPtox11TUnfJMv9sVvBhx_CzBtpzpyRurPZaXE7q_0CloQdonNRHhWCn3GMlZb61y_hhGp3j21IxlsnjlxjOVUjuMXlMP06moI888EbyM"/>
+<div class="absolute inset-0 bg-on-background/10"></div>
+</div>
+<h4 class="text-xl font-bold mb-2">Immersive Learning</h4>
+<p class="text-sm text-on-surface-variant">Interactive AI tutors that provide personalized education experiences at scale.</p>
+</div>
+<div class="group cursor-pointer">
+<div class="rounded-3xl overflow-hidden aspect-video mb-6 relative">
+<img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" data-alt="Virtual luxury concierge service representation with high-end digital interface and sleek design" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCprtBCDSepawAxR6kCJtT1NwPuKPu5R2xmsJ6DYandyAYKhOqnUskeXLw4dme6gQi9PTynGStf22rJel4qmFiWeAmyPL0bdZF23fUUZWANkjptYDFmJpCTrBuNhFyMWRZXSxSUrG0R-Ovs4a2KO8b-KEiN0-MYc6nVWIdf8acp0VGMmMeeLs6x4etaUHvuz8Gn9Bo4fCRHw2_usyBAcC6zeC78xN9fM9a0UwQlSdNLTSLHQ8Dk7hPlEoNex6rNeN9LySh3K4kDanA"/>
+<div class="absolute inset-0 bg-on-background/10"></div>
+</div>
+<h4 class="text-xl font-bold mb-2">Sales &amp; Concierge</h4>
+<p class="text-sm text-on-surface-variant">Luxury retail assistants that guide customers through complex product catalogs.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Why This Product (Comparison) -->
+<section class="py-24 bg-surface-container-lowest">
+<div class="max-w-4xl mx-auto px-6">
+<div class="bg-surface-container-low rounded-[2rem] p-12 overflow-hidden relative">
+<div class="absolute top-0 right-0 w-64 h-64 bg-primary-container/20 blur-[100px] -z-10"></div>
+<h2 class="text-3xl font-headline font-bold mb-12 text-center">Beyond Standard AI.</h2>
+<div class="space-y-6">
+<div class="grid grid-cols-2 pb-6 border-b border-outline-variant/10">
+<div class="text-sm font-bold uppercase tracking-widest opacity-40">Feature</div>
+<div class="text-sm font-bold uppercase tracking-widest text-primary text-center">Atelier AI</div>
+</div>
+<div class="grid grid-cols-2 py-2 items-center">
+<div class="font-medium text-on-surface">Response Latency</div>
+<div class="text-center font-bold text-primary">&lt; 200ms</div>
+</div>
+<div class="grid grid-cols-2 py-2 items-center">
+<div class="font-medium text-on-surface">Visual Fidelity</div>
+<div class="text-center font-bold text-primary">4K HDR</div>
+</div>
+<div class="grid grid-cols-2 py-2 items-center">
+<div class="font-medium text-on-surface">Knowledge Retrieval</div>
+<div class="text-center font-bold text-primary">Dynamic RAG</div>
+</div>
+<div class="grid grid-cols-2 py-2 items-center">
+<div class="font-medium text-on-surface">Emotion Synthesis</div>
+<div class="text-center font-bold text-primary">Included</div>
+</div>
+<div class="grid grid-cols-2 py-2 items-center">
+<div class="font-medium text-on-surface">Language Support</div>
+<div class="text-center font-bold text-primary">40+ Core</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- CTA Section -->
+<section class="py-32 px-6">
+<div class="max-w-5xl mx-auto bg-primary rounded-[3rem] p-12 md:p-20 text-center relative overflow-hidden">
+<div class="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-white/10 to-transparent"></div>
+<h2 class="text-4xl md:text-5xl font-headline font-extrabold text-on-primary mb-6 relative z-10">Ready to build your <span class="italic font-normal">digital double?</span></h2>
+<p class="text-on-primary/80 text-lg mb-12 max-w-xl mx-auto relative z-10">Join 500+ enterprises redefining human connection with the Digital Atelier.</p>
+<div class="flex flex-col md:flex-row gap-4 justify-center relative z-10">
+<button class="px-10 py-4 bg-on-primary text-primary rounded-xl font-bold text-lg hover:scale-105 transition-transform shadow-xl">Get Started Free</button>
+<button class="px-10 py-4 bg-transparent border-2 border-on-primary/20 text-on-primary rounded-xl font-bold text-lg hover:bg-on-primary/10 transition-colors">Contact Sales</button>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer Shared Component -->
+<footer class="bg-slate-50 py-12 px-8 font-['Inter'] text-sm tracking-wide">
+<div class="flex flex-col md:flex-row justify-between items-center w-full max-w-7xl mx-auto gap-6">
+<div class="font-['Manrope'] font-bold text-slate-900 text-lg">Digital Atelier</div>
+<div class="flex flex-wrap justify-center gap-8 text-slate-600">
+<a class="hover:text-slate-900 underline-offset-4 hover:underline transition-opacity opacity-80 hover:opacity-100" href="#">Privacy Policy</a>
+<a class="hover:text-slate-900 underline-offset-4 hover:underline transition-opacity opacity-80 hover:opacity-100" href="#">Terms of Service</a>
+<a class="hover:text-slate-900 underline-offset-4 hover:underline transition-opacity opacity-80 hover:opacity-100" href="#">Contact</a>
+<a class="hover:text-slate-900 underline-offset-4 hover:underline transition-opacity opacity-80 hover:opacity-100" href="#">Status</a>
+</div>
+<div class="text-slate-600 font-medium">
+                © 2024 Digital Atelier. All rights reserved.
+            </div>
+</div>
+</footer>
+</body></html>

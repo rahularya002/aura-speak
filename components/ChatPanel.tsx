@@ -23,7 +23,7 @@ interface ChatPanelProps {
 
 const ThinkingIndicator = () => (
   <div className="flex items-start gap-3 px-4">
-    <div className="flex items-center gap-1.5 rounded-2xl rounded-tl-sm bg-secondary px-4 py-3">
+    <div className="flex items-center gap-1.5 rounded-2xl rounded-tl-sm border border-outline-variant/35 bg-surface-container-low px-4 py-3">
       <span className="thinking-dot h-2 w-2 rounded-full bg-muted-foreground" />
       <span className="thinking-dot h-2 w-2 rounded-full bg-muted-foreground" />
       <span className="thinking-dot h-2 w-2 rounded-full bg-muted-foreground" />
@@ -48,12 +48,19 @@ const ChatPanel = ({ messages, isLoading, onSend }: ChatPanelProps) => {
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full flex-col font-body">
+      <div className="border-b border-outline-variant/30 bg-surface-container-lowest/80 px-4 py-3">
+        <p className="font-headline text-sm font-semibold tracking-tight text-on-surface">
+          Conversation Studio
+        </p>
+        <p className="text-xs text-on-surface-variant">Ask, refine, and iterate in real time.</p>
+      </div>
       <ScrollArea className="flex-1 p-4">
-        <div className="flex flex-col gap-4">
+        <div className="mx-auto flex max-w-3xl flex-col gap-4">
           {messages.length === 0 && (
-            <div className="flex flex-col items-center justify-center h-full py-20 text-muted-foreground">
-              <p className="text-sm">Ask me anything to get started.</p>
+            <div className="flex h-full flex-col items-center justify-center rounded-3xl border border-outline-variant/35 bg-surface-container-low px-6 py-20 text-muted-foreground">
+              <p className="font-headline text-base font-semibold text-on-surface">Ask me anything to get started.</p>
+              <p className="mt-1 text-sm text-on-surface-variant">I can answer from your linked knowledge and model setup.</p>
             </div>
           )}
           {messages.map((msg) => (
@@ -64,8 +71,8 @@ const ChatPanel = ({ messages, isLoading, onSend }: ChatPanelProps) => {
               <div
                 className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
                   msg.role === "user"
-                    ? "rounded-tr-sm bg-primary text-primary-foreground"
-                    : "rounded-tl-sm bg-secondary text-secondary-foreground"
+                    ? "rounded-tr-sm bg-stitch-primary text-on-primary shadow-[0_10px_24px_-14px_rgba(87,95,117,0.9)]"
+                    : "rounded-tl-sm border border-outline-variant/35 bg-surface-container-low text-on-surface"
                 }`}
               >
                 {msg.role === "assistant" ? (
@@ -92,7 +99,7 @@ const ChatPanel = ({ messages, isLoading, onSend }: ChatPanelProps) => {
                       }`}
                     />
                   </CollapsibleTrigger>
-                  <CollapsibleContent className="mt-1 space-y-1 rounded-md border border-border/60 bg-background/60 p-2">
+                  <CollapsibleContent className="mt-1 space-y-1 rounded-md border border-outline-variant/35 bg-surface-container-low p-2">
                     {msg.sources.map((source, i) => (
                       <div key={`${source.document}-${i}`} className="space-y-0.5 text-[11px]">
                         <div className="font-medium text-foreground/90 truncate">{source.document}</div>
@@ -109,17 +116,24 @@ const ChatPanel = ({ messages, isLoading, onSend }: ChatPanelProps) => {
         </div>
       </ScrollArea>
 
-      <form onSubmit={handleSubmit} className="flex gap-2 p-4 border-t border-border">
+      <form onSubmit={handleSubmit} className="border-t border-outline-variant/35 bg-surface-container-lowest p-4">
+        <div className="mx-auto flex max-w-3xl gap-2">
         <Input
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Type your message..."
-          className="flex-1 bg-secondary border-none"
+          className="flex-1 border-outline-variant/50 bg-surface-container-low focus-visible:ring-stitch-primary/40"
           disabled={isLoading}
         />
-        <Button type="submit" size="icon" disabled={isLoading || !input.trim()}>
+        <Button
+          type="submit"
+          size="icon"
+          disabled={isLoading || !input.trim()}
+          className="bg-stitch-primary text-on-primary hover:bg-primary-dim"
+        >
           <Send className="h-4 w-4" />
         </Button>
+        </div>
       </form>
     </div>
   );
