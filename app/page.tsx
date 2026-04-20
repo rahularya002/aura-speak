@@ -11,7 +11,6 @@ import {
   Mic,
   Network,
   Terminal,
-  UserCircle2,
   Brain,
 } from "lucide-react";
 import { motion } from "framer-motion";
@@ -29,20 +28,13 @@ export default function LandingPage() {
         {/*  TopNavBar Shared Component  */}
         <header className="z-50 sticky top-6 px-4">
           <nav className="bg-white/70 backdrop-blur-3xl rounded-full flex justify-between items-center max-w-5xl mx-auto px-6 py-3 w-full shadow-[0_8px_32px_0_rgba(45,51,53,0.06)] font-headline tracking-tight font-semibold">
-            <div className="text-xl font-bold tracking-tighter text-slate-900">Atelier AI</div>
-            {/*  Desktop Nav  */}
-            <div className="hidden md:flex items-center gap-8">
-              <Link className="text-slate-900 font-bold hover:text-slate-900 transition-colors duration-300" href="/models">Models</Link>
-              <Link className="text-slate-500 font-medium hover:text-slate-900 transition-colors duration-300" href="/chat">Studio</Link>
-              <Link className="text-slate-500 font-medium hover:text-slate-900 transition-colors duration-300" href="/deployment">Enterprise</Link>
-              <Link className="text-slate-500 font-medium hover:text-slate-900 transition-colors duration-300" href="/settings">Pricing</Link>
-            </div>
-            <div className="flex items-center gap-4">
-              <button className="text-slate-700 hover:text-slate-900 transition-colors" aria-label="Account">
-                <UserCircle2 className="h-6 w-6" />
-              </button>
-              <Link href="/chat" className="bg-stitch-primary text-on-primary px-6 py-2 rounded-full text-sm font-bold scale-95 active:scale-90 transition-transform">Get Started</Link>
-            </div>
+            <div className="text-xl font-bold tracking-tighter text-slate-900">ENB Avatars</div>
+            <Link
+              href="/overview"
+              className="bg-stitch-primary text-on-primary px-6 py-2 rounded-full text-sm font-bold scale-95 active:scale-90 transition-transform"
+            >
+              Get Started
+            </Link>
           </nav>
         </header>
         <main>
@@ -134,7 +126,7 @@ export default function LandingPage() {
           >
             <div className="max-w-7xl mx-auto px-6">
               <div className="mb-16 max-w-2xl">
-                <h2 className="text-4xl font-headline font-bold mb-4 tracking-tight">Engineered for the Atelier.</h2>
+                <h2 className="text-4xl font-headline font-bold mb-4 tracking-tight">Engineered for the Avatars.</h2>
                 <p className="text-on-surface-variant">A suite of tools designed to bridge the gap between artificial logic and human empathy.</p>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-4 md:grid-rows-2 gap-4 h-full md:h-[600px]">
@@ -341,7 +333,7 @@ export default function LandingPage() {
               <div className="flex justify-between items-end mb-16">
                 <div>
                   <h2 className="text-4xl font-headline font-bold">Limitless Presence.</h2>
-                  <p className="text-on-surface-variant mt-2">Where Atelier AI makes a difference.</p>
+                  <p className="text-on-surface-variant mt-2">Where ENB Avatars makes a difference.</p>
                 </div>
                 <div className="hidden md:flex gap-4">
                   <button className="p-3 bg-surface-container-high rounded-full hover:bg-surface-container-highest transition-colors">
@@ -393,7 +385,7 @@ export default function LandingPage() {
                 <div className="space-y-6">
                   <div className="grid grid-cols-2 pb-6 border-b border-outline-variant/10">
                     <div className="text-sm font-bold uppercase tracking-widest opacity-40">Feature</div>
-                    <div className="text-sm font-bold uppercase tracking-widest text-stitch-primary text-center">Atelier AI</div>
+                    <div className="text-sm font-bold uppercase tracking-widest text-stitch-primary text-center">ENB Avatars</div>
                   </div>
                   <div className="grid grid-cols-2 py-2 items-center">
                     <div className="font-medium text-on-surface">Response Latency</div>
@@ -428,7 +420,7 @@ export default function LandingPage() {
             <div className="max-w-5xl mx-auto bg-stitch-primary rounded-[3rem] p-12 md:p-20 text-center relative overflow-hidden">
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-white/10 to-transparent"></div>
               <h2 className="text-4xl md:text-5xl font-headline font-extrabold text-on-primary mb-6 relative z-10">Ready to build your <span className="italic font-normal">digital double?</span></h2>
-              <p className="text-on-primary/80 text-lg mb-12 max-w-xl mx-auto relative z-10">Join 500+ enterprises redefining human connection with the Digital Atelier.</p>
+              <p className="text-on-primary/80 text-lg mb-12 max-w-xl mx-auto relative z-10">Join teams redefining human connection with ENB Avatars.</p>
               <div className="flex flex-col md:flex-row gap-4 justify-center relative z-10">
                 <Link href="/chat" className="px-10 py-4 bg-on-primary text-stitch-primary rounded-xl font-bold text-lg hover:scale-105 transition-transform shadow-xl">Get Started Free</Link>
                 <button className="px-10 py-4 bg-transparent border-2 border-on-primary/20 text-on-primary rounded-xl font-bold text-lg hover:bg-on-primary/10 transition-colors">Contact Sales</button>
@@ -439,7 +431,7 @@ export default function LandingPage() {
         {/*  Footer Shared Component  */}
         <footer className="bg-slate-50 py-12 px-8 font-body text-sm tracking-wide">
           <div className="flex flex-col md:flex-row justify-between items-center w-full max-w-7xl mx-auto gap-6">
-            <div className="font-headline font-bold text-slate-900 text-lg">Digital Atelier</div>
+            <div className="font-headline font-bold text-slate-900 text-lg">ENB Avatars</div>
             <div className="flex flex-wrap justify-center gap-8 text-slate-600">
               <a className="hover:text-slate-900 underline-offset-4 hover:underline transition-opacity opacity-80 hover:opacity-100" href="#">Privacy Policy</a>
               <a className="hover:text-slate-900 underline-offset-4 hover:underline transition-opacity opacity-80 hover:opacity-100" href="#">Terms of Service</a>
@@ -447,7 +439,7 @@ export default function LandingPage() {
               <a className="hover:text-slate-900 underline-offset-4 hover:underline transition-opacity opacity-80 hover:opacity-100" href="#">Status</a>
             </div>
             <div className="text-slate-600 font-medium">
-              © 2024 Digital Atelier. All rights reserved.
+              © 2026 ENB Avatars. All rights reserved.
             </div>
           </div>
         </footer>

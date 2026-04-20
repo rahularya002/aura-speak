@@ -49,19 +49,10 @@ const ChatPanel = ({ messages, isLoading, onSend }: ChatPanelProps) => {
 
   return (
     <div className="flex h-full flex-col font-body">
-      <div className="border-b border-outline-variant/30 bg-surface-container-lowest/80 px-4 py-3">
-        <p className="font-headline text-sm font-semibold tracking-tight text-on-surface">
-          Conversation Studio
-        </p>
-        <p className="text-xs text-on-surface-variant">Ask, refine, and iterate in real time.</p>
-      </div>
       <ScrollArea className="flex-1 p-4">
         <div className="mx-auto flex max-w-3xl flex-col gap-4">
           {messages.length === 0 && (
-            <div className="flex h-full flex-col items-center justify-center rounded-3xl border border-outline-variant/35 bg-surface-container-low px-6 py-20 text-muted-foreground">
-              <p className="font-headline text-base font-semibold text-on-surface">Ask me anything to get started.</p>
-              <p className="mt-1 text-sm text-on-surface-variant">I can answer from your linked knowledge and model setup.</p>
-            </div>
+            <div className="h-full rounded-3xl border border-outline-variant/35 bg-surface-container-low px-6 py-20" />
           )}
           {messages.map((msg) => (
             <div
@@ -92,7 +83,6 @@ const ChatPanel = ({ messages, isLoading, onSend }: ChatPanelProps) => {
                 >
                   <CollapsibleTrigger className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors">
                     <FileText className="h-3 w-3" />
-                    <span>Sources ({msg.sources.length})</span>
                     <ChevronDown
                       className={`h-3 w-3 transition-transform duration-200 ${
                         openSourcesByMessage[msg.id] ? "rotate-180" : ""
@@ -121,7 +111,7 @@ const ChatPanel = ({ messages, isLoading, onSend }: ChatPanelProps) => {
         <Input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Type your message..."
+          placeholder=""
           className="flex-1 border-outline-variant/50 bg-surface-container-low focus-visible:ring-stitch-primary/40"
           disabled={isLoading}
         />

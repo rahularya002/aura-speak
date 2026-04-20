@@ -56,6 +56,8 @@ const navItems = [
   { title: "Settings", url: "/settings", icon: Settings2 },
 ];
 
+const TEMP_ENABLED_NAV_TITLE = "Chat";
+
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
@@ -83,7 +85,7 @@ export function AppSidebar() {
         <SidebarContent>
           <div className="px-4 pt-4 pb-1">
             <div className="font-headline text-base font-bold tracking-tight text-on-surface">
-              Atelier AI
+              ENB Avatars
             </div>
             {!collapsed && (
               <p className="mt-0.5 text-[11px] text-on-surface-variant">
@@ -144,6 +146,7 @@ export function AppSidebar() {
             <SidebarGroupContent>
               <SidebarMenu>
                 {navItems.map((item) => {
+                  const isTemporarilyEnabled = item.title === TEMP_ENABLED_NAV_TITLE;
                   const isActive =
                     item.url === "/"
                       ? pathname === "/"
@@ -151,17 +154,28 @@ export function AppSidebar() {
 
                   return (
                     <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton asChild isActive={isActive}>
-                        <NavLink
-                          href={item.url}
-                          end={item.url === "/"}
-                          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-all duration-150"
-                          activeClassName="bg-surface-container-highest text-on-surface font-medium"
+                      {isTemporarilyEnabled ? (
+                        <SidebarMenuButton asChild isActive={isActive}>
+                          <NavLink
+                            href={item.url}
+                            end={item.url === "/"}
+                            className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-all duration-150"
+                            activeClassName="bg-surface-container-highest text-on-surface font-medium"
+                          >
+                            <item.icon className="h-4 w-4 shrink-0" />
+                            {!collapsed && <span>{item.title}</span>}
+                          </NavLink>
+                        </SidebarMenuButton>
+                      ) : (
+                        <SidebarMenuButton
+                          disabled
+                          isActive={false}
+                          className="cursor-not-allowed opacity-45 hover:bg-transparent hover:text-on-surface-variant"
                         >
                           <item.icon className="h-4 w-4 shrink-0" />
                           {!collapsed && <span>{item.title}</span>}
-                        </NavLink>
-                      </SidebarMenuButton>
+                        </SidebarMenuButton>
+                      )}
                     </SidebarMenuItem>
                   );
                 })}

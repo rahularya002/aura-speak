@@ -1,6 +1,5 @@
  "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { RefreshCw, Video, VideoOff, Wifi, WifiOff, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -26,14 +25,14 @@ interface AvatarPanelProps {
 }
 
 const statusConfig: Record<AvatarStatus, { label: string; color: string }> = {
-  idle: { label: "Ready", color: "bg-muted-foreground" },
-  connecting: { label: "Connecting...", color: "bg-yellow-500" },
-  speaking: { label: "Speaking", color: "bg-green-500" },
-  error: { label: "Unavailable", color: "bg-destructive" },
+  idle: { label: "", color: "bg-muted-foreground" },
+  connecting: { label: "", color: "bg-yellow-500" },
+  speaking: { label: "", color: "bg-green-500" },
+  error: { label: "", color: "bg-destructive" },
 };
 
 const AvatarPanel = ({ status, streamUrl, embedFrameKey = 0, onReloadEmbed }: AvatarPanelProps) => {
-  const { label, color } = statusConfig[status];
+  const { color } = statusConfig[status];
   const busy = status === "connecting";
   const [voices, setVoices] = useState<LiveAvatarVoice[]>([]);
   const [loadingVoices, setLoadingVoices] = useState(false);
@@ -97,7 +96,6 @@ const AvatarPanel = ({ status, streamUrl, embedFrameKey = 0, onReloadEmbed }: Av
       <div className="flex shrink-0 items-center justify-between gap-2 border-b border-outline-variant/35 bg-surface-container-lowest/85 px-4 py-3 backdrop-blur">
         <div className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
           {status === "error" ? <WifiOff className="h-4 w-4 shrink-0" /> : <Wifi className="h-4 w-4 shrink-0" />}
-          <span className="font-headline text-on-surface">{label}</span>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {onReloadEmbed && (
@@ -110,7 +108,6 @@ const AvatarPanel = ({ status, streamUrl, embedFrameKey = 0, onReloadEmbed }: Av
               onClick={onReloadEmbed}
             >
               <RefreshCw className={`h-3.5 w-3.5 ${busy ? "animate-spin" : ""}`} />
-              {status === "error" ? "Retry connection" : "Reload session"}
             </Button>
           )}
           <span className={`h-2.5 w-2.5 rounded-full ${color} ${busy ? "animate-pulse" : ""}`} />
@@ -168,28 +165,6 @@ const AvatarPanel = ({ status, streamUrl, embedFrameKey = 0, onReloadEmbed }: Av
           Apply
         </Button>
       </div>
-      {streamUrl && (
-        <div className="shrink-0 space-y-1.5 border-b border-outline-variant/35 bg-surface-container-low px-4 py-2 text-[11px] leading-snug text-muted-foreground">
-          <p className="text-[10px] text-foreground/90">
-            LiveAvatar <span className="font-medium">FULL</span> vs <span className="font-medium">LITE</span>: this screen uses the{" "}
-            <span className="font-medium">embed</span> iframe (FULL-style pipeline).{" "}
-            <Link href="/avatar" className="font-medium text-primary underline underline-offset-2">
-              Details
-            </Link>
-          </p>
-          <p>
-            <span className="font-mono text-[10px]">POST /v1/sessions/start</span> returning 400 often means{" "}
-            <span className="font-medium text-foreground">sandbox is on but Avatar ID isn&apos;t Wayne</span> (see
-            sandbox rules in{" "}
-            <Link href="/avatar" className="font-medium text-primary underline underline-offset-2">
-              Avatar Settings
-            </Link>
-            ). Also try <span className="font-medium text-foreground">Reload session</span>, allow camera/mic, and
-            ensure API key, avatar, and context belong to the same account.
-          </p>
-        </div>
-      )}
-
       {/* Fills all space below the header; iframe uses absolute fill so it isn’t height-auto */}
       <div className="relative min-h-0 flex-1 p-3">
         <div className="relative h-full min-h-[200px] w-full overflow-hidden rounded-2xl border border-outline-variant/30 bg-surface-container-high/40 shadow-[0_20px_60px_-48px_rgba(87,95,117,0.7)]">
@@ -207,16 +182,6 @@ const AvatarPanel = ({ status, streamUrl, embedFrameKey = 0, onReloadEmbed }: Av
                 <>
                   <VideoOff className="h-16 w-16 opacity-30" />
                   <div className="max-w-xs space-y-2 px-4 text-center">
-                    <p className="text-sm text-foreground">
-                      Couldn&apos;t load the avatar stream (missing keys, wrong backend, or network).
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Set LiveAvatar or HeyGen in{" "}
-                      <Link href="/avatar" className="font-medium text-primary underline underline-offset-2">
-                        Avatar Settings
-                      </Link>
-                      . Chat on the right still works.
-                    </p>
                     {onReloadEmbed && (
                       <Button
                         type="button"
@@ -225,7 +190,7 @@ const AvatarPanel = ({ status, streamUrl, embedFrameKey = 0, onReloadEmbed }: Av
                         className="h-8 text-xs"
                         onClick={onReloadEmbed}
                       >
-                        Retry avatar connection
+                        <RefreshCw className="h-3.5 w-3.5" />
                       </Button>
                     )}
                   </div>
@@ -233,7 +198,6 @@ const AvatarPanel = ({ status, streamUrl, embedFrameKey = 0, onReloadEmbed }: Av
               ) : (
                 <>
                   <Video className="h-16 w-16 opacity-20" />
-                  <p className="text-sm">Avatar will appear here</p>
                 </>
               )}
             </div>
