@@ -433,10 +433,14 @@ export default function LandingPage() {
           <div className="flex flex-col md:flex-row justify-between items-center w-full max-w-7xl mx-auto gap-6">
             <div className="font-headline font-bold text-slate-900 text-lg">ENB Avatars</div>
             <div className="flex flex-wrap justify-center gap-8 text-slate-600">
-              <a className="hover:text-slate-900 underline-offset-4 hover:underline transition-opacity opacity-80 hover:opacity-100" href="#">Privacy Policy</a>
-              <a className="hover:text-slate-900 underline-offset-4 hover:underline transition-opacity opacity-80 hover:opacity-100" href="#">Terms of Service</a>
-              <a className="hover:text-slate-900 underline-offset-4 hover:underline transition-opacity opacity-80 hover:opacity-100" href="#">Contact</a>
-              <a className="hover:text-slate-900 underline-offset-4 hover:underline transition-opacity opacity-80 hover:opacity-100" href="#">Status</a>
+              <a
+                className="hover:text-slate-900 underline-offset-4 hover:underline transition-opacity opacity-80 hover:opacity-100"
+                href="https://www.enbquantum.com/contact"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Contact
+              </a>
             </div>
             <div className="text-slate-600 font-medium">
               © 2026 ENB Avatars. All rights reserved.
