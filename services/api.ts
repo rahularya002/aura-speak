@@ -53,7 +53,7 @@ const getConfig = () => {
       avatarId: "default",
       avatarVoiceId: "",
       contextId: "",
-      isSandbox: true,
+      isSandbox: false,
       avatarProvider: "liveavatar" as "liveavatar" | "heygen",
       enableVoicePlayback: false,
       ttsVoiceId: "",
@@ -64,7 +64,7 @@ const getConfig = () => {
     localStorage.getItem("ai-assistant-heygen-key")?.trim() ||
     "";
   const sandboxRaw = localStorage.getItem("ai-assistant-liveavatar-sandbox");
-  const isSandbox = sandboxRaw === null ? true : sandboxRaw === "true";
+  const isSandbox = sandboxRaw === null ? false : sandboxRaw === "true";
   const avatarProvider =
     (localStorage.getItem("ai-assistant-avatar-provider") as
       | "liveavatar"

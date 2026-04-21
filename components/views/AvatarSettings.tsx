@@ -28,7 +28,7 @@ const AvatarSettings = () => {
   const [avatarId, setAvatarId] = useState("");
   const [contextId, setContextId] = useState("");
   const [apiKey, setApiKey] = useState("");
-  const [isSandbox, setIsSandbox] = useState(true);
+  const [isSandbox, setIsSandbox] = useState(false);
   const [voice, setVoice] = useState("");
   const [speed, setSpeed] = useState(1.0);
   const [isTesting, setIsTesting] = useState(false);
@@ -49,7 +49,7 @@ const AvatarSettings = () => {
       "";
     setApiKey(key);
     const sb = localStorage.getItem("ai-assistant-liveavatar-sandbox");
-    setIsSandbox(sb === null ? true : sb === "true");
+    setIsSandbox(sb === null ? false : sb === "true");
     const savedVoice = localStorage.getItem("ai-assistant-avatar-voice-id") || "";
     setVoice(savedVoice);
     setManualVoiceId(savedVoice);

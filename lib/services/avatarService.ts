@@ -13,7 +13,7 @@ export type CreateAvatarSessionParams = {
   avatarId?: string;
   voiceId?: string;
   contextId?: string;
-  /** LiveAvatar sandbox embed (no credits); default true unless LIVEAVATAR_SANDBOX=false */
+  /** LiveAvatar sandbox embed (no credits); default false unless LIVEAVATAR_SANDBOX=true */
   isSandbox?: boolean;
 };
 
@@ -64,7 +64,7 @@ export async function createAvatarSession(
 
   const isSandbox =
     params.isSandbox ??
-    (process.env.LIVEAVATAR_SANDBOX === "false" ? false : true);
+    (process.env.LIVEAVATAR_SANDBOX === "true" ? true : false);
 
   if (isSandbox && avatarId.trim().toLowerCase() !== LIVEAVATAR_SANDBOX_WAYNE_AVATAR_ID) {
     throw new Error(
