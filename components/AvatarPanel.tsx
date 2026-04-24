@@ -1,7 +1,7 @@
  "use client";
 
-import { useEffect, useState } from "react";
-import { RefreshCw, Video, VideoOff, Wifi, WifiOff, Volume2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Maximize2, Minimize2, RefreshCw, Video, VideoOff, Wifi, WifiOff, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -41,6 +41,8 @@ const AvatarPanel = ({ status, streamUrl, embedFrameKey = 0, onReloadEmbed }: Av
   const [apiKey, setApiKey] = useState("");
   const [controlsReady, setControlsReady] = useState(false);
   const [hasApiKey, setHasApiKey] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const streamContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const key =
@@ -74,6 +76,15 @@ const AvatarPanel = ({ status, streamUrl, embedFrameKey = 0, onReloadEmbed }: Av
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiKey]);
 
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(document.fullscreenElement === streamContainerRef.current);
+    };
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
+
   const applyVoice = (next: string) => {
     const resolved = next === "__default__" ? "" : next;
     setVoiceId(resolved);
@@ -90,6 +101,21 @@ const AvatarPanel = ({ status, streamUrl, embedFrameKey = 0, onReloadEmbed }: Av
     if (onReloadEmbed) onReloadEmbed();
   };
 
+  const toggleFullscreen = async () => {
+    const container = streamContainerRef.current;
+    if (!container) return;
+
+    try {
+      if (document.fullscreenElement === container) {
+        await document.exitFullscreen();
+      } else {
+        await container.requestFullscreen();
+      }
+    } catch {
+      toast.error("Fullscreen is unavailable in this browser.");
+    }
+  };
+
   return (
     <div className="flex min-h-0 flex-1 flex-col font-body">
       {/* Status bar */}
@@ -98,6 +124,16 @@ const AvatarPanel = ({ status, streamUrl, embedFrameKey = 0, onReloadEmbed }: Av
           {status === "error" ? <WifiOff className="h-4 w-4 shrink-0" /> : <Wifi className="h-4 w-4 shrink-0" />}
         </div>
         <div className="flex shrink-0 items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1.5 border-outline-variant/40 bg-surface-container-low text-xs hover:bg-surface-container-high"
+            onClick={() => void toggleFullscreen()}
+            title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+          >
+            {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+          </Button>
           {onReloadEmbed && (
             <Button
               type="button"
@@ -167,7 +203,10 @@ const AvatarPanel = ({ status, streamUrl, embedFrameKey = 0, onReloadEmbed }: Av
       </div>
       {/* Fills all space below the header; iframe uses absolute fill so it isn’t height-auto */}
       <div className="relative min-h-0 flex-1 p-3">
-        <div className="relative h-full min-h-[200px] w-full overflow-hidden rounded-2xl border border-outline-variant/30 bg-surface-container-high/40 shadow-[0_20px_60px_-48px_rgba(87,95,117,0.7)]">
+        <div
+          ref={streamContainerRef}
+          className="relative h-full min-h-[200px] w-full overflow-hidden rounded-2xl border border-outline-variant/30 bg-surface-container-high/40 shadow-[0_20px_60px_-48px_rgba(87,95,117,0.7)]"
+        >
           {streamUrl ? (
             <iframe
               key={embedFrameKey}
