@@ -29,12 +29,17 @@ export default function LandingPage() {
         <header className="z-50 sticky top-6 px-4">
           <nav className="bg-white/70 backdrop-blur-3xl rounded-full flex justify-between items-center max-w-5xl mx-auto px-6 py-3 w-full shadow-[0_8px_32px_0_rgba(45,51,53,0.06)] font-headline tracking-tight font-semibold">
             <div className="text-xl font-bold tracking-tighter text-slate-900">ENB Avatars</div>
-            <Link
-              href="/chat"
-              className="bg-stitch-primary text-on-primary px-6 py-2 rounded-full text-sm font-bold scale-95 active:scale-90 transition-transform"
-            >
-              Get Started
-            </Link>
+            <div className="flex items-center gap-4">
+              <Link href="/pricing" className="text-sm font-bold text-slate-700 hover:text-slate-900">
+                Pricing
+              </Link>
+              <Link
+                href="/chat"
+                className="bg-stitch-primary text-on-primary px-6 py-2 rounded-full text-sm font-bold scale-95 active:scale-90 transition-transform"
+              >
+                Get Started
+              </Link>
+            </div>
           </nav>
         </header>
         <main>
